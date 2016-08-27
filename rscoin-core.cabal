@@ -48,8 +48,7 @@ library
                      , RSCoin.Timed.Timed
                      , RSCoin.Timed.TimedIO
                      , RSCoin.Timed.Misc
-  build-depends:       acid-state
-                     , aeson
+  build-depends:       aeson
                      , ansi-terminal
                      , base >=4.8 && <4.9
                      , base64-bytestring >= 1.0.0.1
@@ -79,14 +78,12 @@ library
                      , monad-control
                      , msgpack >= 1.0.0
                      , msgpack-rpc >= 1.0.0
-                     , optional-args
                      , pqueue
                      , QuickCheck >= 2.8.1
                      , random
                      , safe
                      , safecopy
                      , serokell-core
-                     , servant-server
                      , stm >= 2.4.4
                      , template-haskell
                      , text >= 1.2.2.0
@@ -96,12 +93,8 @@ library
                      , transformers >= 0.4.2.0
                      , transformers-base
                      , tuple >= 0.3.0.2
-                     , turtle
                      , unordered-containers
                      , vector
-                     , wai >= 3.2.1.1
-                     , wai-extra >= 3.0.16.1
-                     , wai-websockets >= 3.0.0.9
                      , warp
                      , websockets
                      , yaml
@@ -111,5 +104,61 @@ library
                        -fno-warn-orphans
   default-extensions:  RecordWildCards
                      , OverloadedStrings
+                     , DeriveDataTypeable
+                     , GeneralizedNewtypeDeriving
+
+test-suite rscoin-test
+  main-is:             Test.hs
+  other-modules:       Test.RSCoin.Core.AesonSpec
+                     , Test.RSCoin.Core.Arbitrary
+                     , Test.RSCoin.Core.BinarySpec
+                     , Test.RSCoin.Core.CoinSpec
+                     , Test.RSCoin.Core.CryptoSpec
+                     , Test.RSCoin.Core.MessagePackSpec
+                     , Test.RSCoin.Core.OwnersSpec
+                     , Test.RSCoin.Core.ShowReadSpec
+                     , Test.RSCoin.Core.TransactionSpec
+                     , Test.RSCoin.Timed.ExceptionSpec
+                     , Test.RSCoin.Timed.MonadRpcSpec
+                     , Test.RSCoin.Timed.MonadTimedSpec
+                     , Test.RSCoin.Timed.Arbitrary
+                     , Spec
+  type:                exitcode-stdio-1.0
+  build-depends:       base >=4.8 && <4.9
+                     , aeson
+                     , async >= 2.0.1
+                     , binary >= 0.7.5.0
+                     , bytestring >= 0.10.6.0
+                     , containers >= 0.5.6.2
+                     , data-default
+                     , either
+                     , exceptions >= 0.8.2.1
+                     , extra
+                     , formatting
+                     , hashable >= 1.2.4
+                     , hspec >= 2.1.10
+                     , lens >= 4.13
+                     , msgpack >= 1.0.0
+                     , mtl
+                     , QuickCheck >= 2.8.1
+                     , safe
+                     , safecopy
+                     , serokell-core
+                     , stm >= 2.4.4.1
+                     , text >= 1.2.2.0
+                     , text-format
+                     , time-units >= 1.0.0
+                     , transformers >= 0.4.2.0
+                     , unordered-containers >= 0.2.7.1
+                     , vector >= 0.11.0.0
+                     , msgpack-rpc >= 1.0.0
+                     , random >= 1.1
+                     , rscoin-core
+                     , MonadRandom >= 0.4.2.2
+  hs-source-dirs:      test
+  default-language:    Haskell2010
+  ghc-options:         -threaded -rtsopts -with-rtsopts=-TN -Wall -fno-warn-orphans
+  default-extensions:  OverloadedStrings
+                     , RecordWildCards
                      , DeriveDataTypeable
                      , GeneralizedNewtypeDeriving
