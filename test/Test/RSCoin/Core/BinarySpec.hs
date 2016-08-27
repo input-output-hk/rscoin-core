@@ -4,15 +4,13 @@ module Test.RSCoin.Core.BinarySpec
        ( spec
        ) where
 
-import           Data.Binary                (Binary, decode, encode)
-import qualified Data.Set                   as S
-import           Test.Hspec                 (Spec, describe)
-import           Test.Hspec.QuickCheck      (prop)
-import           Test.QuickCheck            ((===))
+import           Data.Binary           (Binary, decode, encode)
+import qualified Data.Set              as S
+import           Test.Hspec            (Spec, describe)
+import           Test.Hspec.QuickCheck (prop)
+import           Test.QuickCheck       ((===))
 
-import qualified RSCoin.Core                as C
-
-import           Test.RSCoin.Core.Arbitrary ()
+import qualified RSCoin.Core           as C
 
 spec :: Spec
 spec =

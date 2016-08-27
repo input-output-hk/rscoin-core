@@ -18,6 +18,7 @@ library
   exposed-modules:     RSCoin.Core
                      , RSCoin.Core.ActionLog
                      , RSCoin.Core.Aeson
+                     , RSCoin.Core.Arbitrary
                      , RSCoin.Core.CheckConfirmation
                      , RSCoin.Core.Communication
                      , RSCoin.Core.CompileConfig
@@ -110,7 +111,6 @@ library
 test-suite rscoin-test
   main-is:             Test.hs
   other-modules:       Test.RSCoin.Core.AesonSpec
-                     , Test.RSCoin.Core.Arbitrary
                      , Test.RSCoin.Core.BinarySpec
                      , Test.RSCoin.Core.CoinSpec
                      , Test.RSCoin.Core.CryptoSpec
@@ -118,10 +118,10 @@ test-suite rscoin-test
                      , Test.RSCoin.Core.OwnersSpec
                      , Test.RSCoin.Core.ShowReadSpec
                      , Test.RSCoin.Core.TransactionSpec
+                     , Test.RSCoin.Timed.Arbitrary
                      , Test.RSCoin.Timed.ExceptionSpec
                      , Test.RSCoin.Timed.MonadRpcSpec
                      , Test.RSCoin.Timed.MonadTimedSpec
-                     , Test.RSCoin.Timed.Arbitrary
                      , Spec
   type:                exitcode-stdio-1.0
   build-depends:       base >=4.8 && <4.9

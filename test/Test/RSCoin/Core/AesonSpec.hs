@@ -4,15 +4,13 @@ module Test.RSCoin.Core.AesonSpec
        ( spec
        ) where
 
-import           Data.Aeson                 (FromJSON, ToJSON, decode, encode)
-import           Data.Maybe                 (fromJust)
-import           Test.Hspec                 (Spec, describe)
-import           Test.Hspec.QuickCheck      (prop)
-import           Test.QuickCheck            ((===))
+import           Data.Aeson            (FromJSON, ToJSON, decode, encode)
+import           Data.Maybe            (fromJust)
+import           Test.Hspec            (Spec, describe)
+import           Test.Hspec.QuickCheck (prop)
+import           Test.QuickCheck       ((===))
 
-import qualified RSCoin.Core                as C
-
-import           Test.RSCoin.Core.Arbitrary ()
+import qualified RSCoin.Core           as C
 
 spec :: Spec
 spec =

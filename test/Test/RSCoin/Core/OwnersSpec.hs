@@ -4,11 +4,10 @@ module Test.RSCoin.Core.OwnersSpec
        ( spec
        ) where
 
-import           Test.Hspec                 (Spec, describe)
-import           Test.Hspec.QuickCheck      (prop)
+import           Test.Hspec            (Spec, describe)
+import           Test.Hspec.QuickCheck (prop)
 
-import qualified RSCoin.Core                as C
-import           Test.RSCoin.Core.Arbitrary ()
+import qualified RSCoin.Core           as C
 
 spec :: Spec
 spec =

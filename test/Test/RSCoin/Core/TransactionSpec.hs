@@ -8,21 +8,19 @@ module Test.RSCoin.Core.TransactionSpec
        ( spec,
        ) where
 
-import           Control.Lens               (view, _3)
-import           Data.Bifunctor             (first, second)
-import qualified Data.IntMap.Strict         as M (IntMap, elems,
-                                                  findWithDefault, foldrWithKey,
-                                                  lookup, mapWithKey, null, (!))
-import           Data.List                  (genericLength, sort)
-import           Data.Maybe                 (isJust)
-import           Test.Hspec                 (Spec, describe)
-import           Test.Hspec.QuickCheck      (prop)
-import           Test.QuickCheck            (Arbitrary (arbitrary), Gen,
-                                             NonEmptyList (..), choose, vector)
+import           Control.Lens          (view, _3)
+import           Data.Bifunctor        (first, second)
+import qualified Data.IntMap.Strict    as M (IntMap, elems, findWithDefault,
+                                             foldrWithKey, lookup, mapWithKey,
+                                             null, (!))
+import           Data.List             (genericLength, sort)
+import           Data.Maybe            (isJust)
+import           Test.Hspec            (Spec, describe)
+import           Test.Hspec.QuickCheck (prop)
+import           Test.QuickCheck       (Arbitrary (arbitrary), Gen,
+                                        NonEmptyList (..), choose, vector)
 
-import qualified RSCoin.Core                as C
-
-import           Test.RSCoin.Core.Arbitrary ()
+import qualified RSCoin.Core           as C
 
 newtype TransactionValid = TransactionValid
     { getTr :: C.Transaction

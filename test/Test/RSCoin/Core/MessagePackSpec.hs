@@ -5,18 +5,16 @@ module Test.RSCoin.Core.MessagePackSpec
        , mid
        ) where
 
-import           Data.Int                   (Int64)
-import           Data.Maybe                 (fromJust)
-import           Data.MessagePack           (MessagePack (..), pack, unpack)
-import qualified Data.Set                   as S
-import           Test.Hspec                 (Spec, describe)
-import           Test.Hspec.QuickCheck      (prop)
-import           Test.QuickCheck            (Arbitrary (arbitrary), Gen, scale,
-                                             (===))
+import           Data.Int              (Int64)
+import           Data.Maybe            (fromJust)
+import           Data.MessagePack      (MessagePack (..), pack, unpack)
+import qualified Data.Set              as S
+import           Test.Hspec            (Spec, describe)
+import           Test.Hspec.QuickCheck (prop)
+import           Test.QuickCheck       (Arbitrary (arbitrary), Gen, scale,
+                                        (===))
 
-import qualified RSCoin.Core                as C
-
-import           Test.RSCoin.Core.Arbitrary ()
+import qualified RSCoin.Core           as C
 
 makeSmall :: Gen a -> Gen a
 makeSmall = scale f

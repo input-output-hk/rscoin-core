@@ -1,26 +1,23 @@
-{-# LANGUAGE FlexibleInstances    #-}
-{-# LANGUAGE TemplateHaskell      #-}
-{-# LANGUAGE TypeSynonymInstances #-}
+-- | Arbitrary instances for core datatypes
+module RSCoin.Core.Arbitrary () where
 
--- | Arbitrary instances for Core types.
+import           Data.Binary            (Binary)
+import           Data.Hashable          (Hashable)
+import           Data.HashMap.Strict    (HashMap)
+import qualified Data.HashMap.Strict    as HM hiding (HashMap)
+import           Data.HashSet           (HashSet)
+import qualified Data.HashSet           as HS hiding (HashSet)
+import           Data.List              ()
+import qualified Data.Map               as M
+import           Data.Text              (Text, pack)
+import           Test.QuickCheck        (Arbitrary (arbitrary), Gen,
+                                         NonNegative (..), choose, oneof)
 
-module Test.RSCoin.Core.Arbitrary
-       (
-       ) where
-
-import           Data.Binary         (Binary)
-import           Data.Hashable       (Hashable)
-import           Data.HashMap.Strict (HashMap)
-import qualified Data.HashMap.Strict as HM hiding (HashMap)
-import           Data.HashSet        (HashSet)
-import qualified Data.HashSet        as HS hiding (HashSet)
-import           Data.List           ()
-import qualified Data.Map            as M
-import           Data.Text           (Text, pack)
-import           Test.QuickCheck     (Arbitrary (arbitrary), Gen,
-                                      NonNegative (..), choose, oneof)
-
-import qualified RSCoin.Core         as C
+import qualified RSCoin.Core.Crypto     as C
+import qualified RSCoin.Core.Primitives as C
+import qualified RSCoin.Core.Protocol   as C
+import qualified RSCoin.Core.Strategy   as C
+import qualified RSCoin.Core.Types      as C
 
 instance (Eq k, Hashable k, Arbitrary k, Arbitrary v) => Arbitrary (HashMap k v) where
     arbitrary = HM.fromList <$> arbitrary

@@ -6,14 +6,12 @@ module Test.RSCoin.Core.CoinSpec
        ( spec
        ) where
 
-import qualified Data.IntMap.Strict         as M (mapWithKey, member, size, (!))
-import           Test.Hspec                 (Spec, describe)
-import           Test.Hspec.QuickCheck      (prop)
-import           Test.QuickCheck            (NonEmptyList (..))
+import qualified Data.IntMap.Strict    as M (mapWithKey, member, size, (!))
+import           Test.Hspec            (Spec, describe)
+import           Test.Hspec.QuickCheck (prop)
+import           Test.QuickCheck       (NonEmptyList (..))
 
-import qualified RSCoin.Core                as C
-
-import           Test.RSCoin.Core.Arbitrary ()
+import qualified RSCoin.Core           as C
 
 spec :: Spec
 spec =
