@@ -43,6 +43,7 @@ library
                      , RSCoin.Core.Types
 
                      , RSCoin.Timed
+                     , RSCoin.Timed.Arbitrary
                      , RSCoin.Timed.MonadTimed
                      , RSCoin.Timed.MonadRpc
                      , RSCoin.Timed.PureRpc
@@ -118,7 +119,6 @@ test-suite rscoin-test
                      , Test.RSCoin.Core.OwnersSpec
                      , Test.RSCoin.Core.ShowReadSpec
                      , Test.RSCoin.Core.TransactionSpec
-                     , Test.RSCoin.Timed.Arbitrary
                      , Test.RSCoin.Timed.ExceptionSpec
                      , Test.RSCoin.Timed.MonadRpcSpec
                      , Test.RSCoin.Timed.MonadTimedSpec

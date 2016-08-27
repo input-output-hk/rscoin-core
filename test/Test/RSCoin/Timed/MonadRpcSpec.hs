@@ -6,25 +6,24 @@ module Test.RSCoin.Timed.MonadRpcSpec
        ( spec
        ) where
 
-import           Control.Monad.State         (StateT, execStateT, modify)
-import           Network.MessagePack.Server  (ServerT)
-import           Test.Hspec                  (Spec, describe, runIO)
-import           Test.Hspec.QuickCheck       (prop)
-import           Test.QuickCheck             (Property, Testable (property),
-                                              ioProperty)
-import           Test.QuickCheck.Monadic     (PropertyM, assert, monadic, run)
+import           Control.Monad.State        (StateT, execStateT, modify)
+import           Network.MessagePack.Server (ServerT)
+import           Test.Hspec                 (Spec, describe, runIO)
+import           Test.Hspec.QuickCheck      (prop)
+import           Test.QuickCheck            (Property, Testable (property),
+                                             ioProperty)
+import           Test.QuickCheck.Monadic    (PropertyM, assert, monadic, run)
 
-import           RSCoin.Core                 (testingLoggerName)
-import           RSCoin.Core.NodeConfig      (Host, NetworkAddress, Port)
-import           RSCoin.Timed                (ContextArgument (CADefault),
-                                              WorkMode, for, fork, fork_,
-                                              killThread, ms,
-                                              runRealModeUntrusted, wait)
-import           RSCoin.Timed.MonadRpc       (Client (..), MonadRpc (..),
-                                              MsgPackRpc (..), call, method)
-import           RSCoin.Timed.PureRpc        (PureRpc, runPureRpc)
-
-import           Test.RSCoin.Timed.Arbitrary ()
+import           RSCoin.Core                (testingLoggerName)
+import           RSCoin.Core.NodeConfig     (Host, NetworkAddress, Port)
+import           RSCoin.Timed               (ContextArgument (CADefault),
+                                             WorkMode, for, fork, fork_,
+                                             killThread, ms,
+                                             runRealModeUntrusted, wait)
+import           RSCoin.Timed.Arbitrary     ()
+import           RSCoin.Timed.MonadRpc      (Client (..), MonadRpc (..),
+                                             MsgPackRpc (..), call, method)
+import           RSCoin.Timed.PureRpc       (PureRpc, runPureRpc)
 
 spec :: Spec
 spec =

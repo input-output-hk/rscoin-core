@@ -30,8 +30,7 @@ import           RSCoin.Core                 (Severity (Error), initLogging)
 import           RSCoin.Timed                (Delays (..), Microsecond, PureRpc,
                                               after, for, fork_, invoke, mcs,
                                               runEmulationMode_, sec, wait)
-
-import           Test.RSCoin.Timed.Arbitrary ()
+import           RSCoin.Timed.Arbitrary      ()
 
 
 spec :: Spec

@@ -1,6 +1,6 @@
 -- | Arbitrary instances for Timed types.
 
-module Test.RSCoin.Timed.Arbitrary
+module RSCoin.Timed.Arbitrary
        (
        ) where
 
@@ -10,7 +10,8 @@ import           Data.Time.Units            (TimeUnit, convertUnit,
 import           System.Random              (StdGen, mkStdGen)
 import           Test.QuickCheck            (Arbitrary (arbitrary), choose)
 
-import qualified RSCoin.Timed               as T
+import qualified RSCoin.Timed.MonadTimed    as T
+import qualified RSCoin.Timed.PureRpc       as T
 
 convertMicroSecond :: TimeUnit t => T.Microsecond -> t
 convertMicroSecond = convertUnit

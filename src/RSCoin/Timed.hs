@@ -16,6 +16,7 @@ module RSCoin.Timed
         , runRealModeUntrusted
         ) where
 
+import           RSCoin.Timed.Arbitrary     ()
 import           RSCoin.Timed.Misc          as Exports
 import           RSCoin.Timed.MonadRpc      as Exports
 import           RSCoin.Timed.MonadTimed    as Exports

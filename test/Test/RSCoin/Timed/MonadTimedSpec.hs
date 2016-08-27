@@ -31,8 +31,8 @@ import           Test.QuickCheck.Function    (Fun, apply)
 import           Test.QuickCheck.Monadic     (PropertyM, assert, monadic,
                                               monitor, run)
 import           Test.QuickCheck.Poly        (A)
-import           Test.RSCoin.Timed.Arbitrary ()
 
+import           RSCoin.Timed.Arbitrary      ()
 import           RSCoin.Timed.MonadTimed     (Microsecond, MonadTimed (..),
                                               MonadTimedError, RelativeToNow,
                                               after, for, fork_, invoke, mcs,
