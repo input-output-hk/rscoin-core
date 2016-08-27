@@ -1,0 +1,16 @@
+.stack-work
+*#
+*~
+\#*
+TAGS
+stats
+tmp/
+flycheck_*
+
+# heap dumps
+*.hp
+*.ps
+*.aux
+
+# MAC OS X
+.DS_Store
