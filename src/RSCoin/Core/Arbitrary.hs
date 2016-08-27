@@ -139,7 +139,3 @@ instance Arbitrary C.BankLocalControlRequest where
                       , C.RemoveMintette <$> arbitrary <*> arbitrary <*> arbitrary
                       , C.RemoveExplorer <$> arbitrary <*> arbitrary <*> arbitrary
                       ]
-
-{- Section for errors. Created after some crazy ResultMismatchError bug. -}
-instance Arbitrary Text where
-    arbitrary = pack <$> arbitrary
