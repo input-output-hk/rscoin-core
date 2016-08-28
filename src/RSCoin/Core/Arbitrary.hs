@@ -9,7 +9,6 @@ import           Data.HashSet           (HashSet)
 import qualified Data.HashSet           as HS hiding (HashSet)
 import           Data.List              ()
 import qualified Data.Map               as M
-import           Data.Text              (Text, pack)
 import           Test.QuickCheck        (Arbitrary (arbitrary), Gen,
                                          NonNegative (..), choose, oneof)
 
