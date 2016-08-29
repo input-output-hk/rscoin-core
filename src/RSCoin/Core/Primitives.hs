@@ -92,14 +92,6 @@ newtype Address = Address
     { getAddress :: PublicKey
     } deriving (Show,Ord,Buildable,Eq,Hashable,Generic)
 
-instance Read Address where
-    readsPrec i =
-        catMaybes .
-        map (\(k, s) -> flip (,) s . Address <$>
-                        constructPublicKey (removePrefix k)) .
-        readsPrec i
-      where removePrefix t = fromMaybe t $ T.stripPrefix (T.pack "Address ") t
-
 instance Binary Address where
     put Address{..} = put getAddress
     get = Address <$> get

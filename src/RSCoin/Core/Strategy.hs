@@ -69,7 +69,7 @@ data TxStrategy
     -- out of @length list@, where every signature
     -- should be made by address in list @list@
     | MOfNStrategy Int (S.Set Address)  -- @TODO: replace with HashSet
-    deriving (Read, Show, Eq)
+    deriving (Show, Eq)
 
 $(deriveSafeCopy 0 'base ''TxStrategy)
 
