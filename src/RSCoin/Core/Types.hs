@@ -402,7 +402,7 @@ instance Buildable NewPeriodData where
 data WithMetadata value metadata = WithMetadata
     { wmValue    :: value
     , wmMetadata :: metadata
-    }
+    } deriving (Show, Eq)
 
 instance (Buildable value, Buildable metadata) =>
          Buildable (WithMetadata value metadata) where
