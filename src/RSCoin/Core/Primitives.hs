@@ -12,17 +12,14 @@ module RSCoin.Core.Primitives
        , AddrId
        , Transaction (..)
        , TransactionId
-       , EmissionId
        , grey
        ) where
 
 import           Data.Binary         (Binary (get, put))
 import           Data.Data           (Data)
 import           Data.Hashable       (Hashable (hashWithSalt))
-import           Data.Maybe          (catMaybes, fromMaybe)
 import           Data.Ord            (comparing)
 import           Data.SafeCopy       (base, deriveSafeCopy)
-import qualified Data.Text           as T
 import           Data.Text.Buildable (Buildable (build))
 import qualified Data.Text.Format    as F
 import           Formatting          (bprint, float, int, (%))
@@ -30,7 +27,7 @@ import           GHC.Generics        (Generic)
 
 import           Serokell.Util.Text  (listBuilderJSON, pairBuilder)
 
-import           RSCoin.Core.Crypto  (Hash, PublicKey, constructPublicKey, hash)
+import           RSCoin.Core.Crypto  (Hash, PublicKey, hash)
 
 newtype Color = Color
     { getC :: Int
@@ -137,9 +134,6 @@ instance Buildable Transaction where
 
 -- | Transaction is identified by its hash
 type TransactionId = Hash Transaction
-
--- | Emission is identified by transaction hash. Period 0 doesn't contain emission transaction so EmissionId for period 0 is Nothing
-type EmissionId = Maybe TransactionId
 
 $(deriveSafeCopy 0 'base ''Address)
 $(deriveSafeCopy 0 'base ''Color)
