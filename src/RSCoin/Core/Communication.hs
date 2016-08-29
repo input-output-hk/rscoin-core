@@ -402,7 +402,7 @@ announceNewBlock
     => Explorer
     -> PeriodId
     -> WithMetadata HBlock Variant
-    -> Signature (PeriodId, HBlock)
+    -> Signature (PeriodId, (WithMetadata HBlock Variant))
     -> m PeriodId
 announceNewBlock explorer pId blk signature =
     withResult infoMessage successMessage $
