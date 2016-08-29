@@ -60,7 +60,6 @@ data BankMethod
     | GetBlockchainHeight
     | GetStatisticsId
     | GetHBlocks
-    | GetHBlockEmission
     | LocalControlRequest -- used for e. g. adding/removing mintettes/explorers
     deriving (Show)
 
