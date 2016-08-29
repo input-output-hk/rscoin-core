@@ -28,6 +28,7 @@ module RSCoin.Core.Types
        , HBlock (..)
        , HBlockHash (..)
        , NewPeriodData (..)
+       , WithMetadata (..)
        , formatNewPeriodData
        ) where
 
@@ -325,6 +326,7 @@ instance Buildable HBlock where
                 , "  dpk: {}\n"
                 , "  addresses: {}\n"
                 , "}\n"]
+
 instance Buildable [HBlock] where
   build = listBuilderJSON
 
@@ -356,6 +358,7 @@ instance Buildable Pset where
 
 instance Buildable (Address, Signature a) where
     build = pairBuilder
+
 instance Buildable [(Address, Signature a)] where
     build = listBuilderJSONIndent 2
 
@@ -396,6 +399,20 @@ formatNewPeriodData withPayload NewPeriodData{..}
 instance Buildable NewPeriodData where
     build = formatNewPeriodData True
 
+data WithMetadata value metadata = WithMetadata
+    { wmValue    :: value
+    , wmMetadata :: metadata
+    }
+
+instance (Buildable value, Buildable metadata) =>
+         Buildable (WithMetadata value metadata) where
+    build WithMetadata{..} =
+        bprint
+            ("WithMetadata:\n— value: " % Formatting.build % "\n— metadata: " %
+             Formatting.build)
+            wmValue
+            wmMetadata
+
 $(deriveSafeCopy 0 'base ''CheckConfirmation)
 $(deriveSafeCopy 0 'base ''CommitAcknowledgment)
 $(deriveSafeCopy 0 'base ''ActionLogEntryHash)
@@ -405,3 +422,4 @@ $(deriveSafeCopy 0 'base ''LBlock)
 $(deriveSafeCopy 0 'base ''HBlockHash)
 $(deriveSafeCopy 0 'base ''HBlock)
 $(deriveSafeCopy 0 'base ''NewPeriodData)
+$(deriveSafeCopy 0 'base ''WithMetadata)
