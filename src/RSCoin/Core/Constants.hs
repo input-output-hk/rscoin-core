@@ -12,6 +12,7 @@ module RSCoin.Core.Constants
         , defaultSecretKeyPath
         , defaultPeriodDelta
         , emissionHash
+        , genesisEmissionHash
         , genesisValue
         , localhost
         , periodReward
@@ -63,6 +64,9 @@ emissionHash :: Binary t => t -> Hash Transaction
 emissionHash a =
     unsafeHash ("This emission hash is needed for all generative" ++
           "transactions to be different" :: String, a)
+
+genesisEmissionHash :: Hash Transaction
+genesisEmissionHash = unsafeHash ("Patak" :: String)
 
 -- | This value is sent to genesisAddress in genesis transaction
 genesisValue :: Coin
