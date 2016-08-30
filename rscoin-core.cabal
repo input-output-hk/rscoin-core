@@ -18,6 +18,7 @@ library
   exposed-modules:     RSCoin.Core
                      , RSCoin.Core.ActionLog
                      , RSCoin.Core.Aeson
+                     , RSCoin.Core.AesonJS
                      , RSCoin.Core.Arbitrary
                      , RSCoin.Core.CheckConfirmation
                      , RSCoin.Core.Communication
