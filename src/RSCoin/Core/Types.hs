@@ -34,6 +34,7 @@ module RSCoin.Core.Types
        ) where
 
 import           Control.Arrow          (first)
+import           Data.Bifunctor         (Bifunctor (bimap))
 import           Data.Binary            (Binary)
 import qualified Data.Map               as M
 import           Data.Maybe             (fromJust, isJust)
@@ -372,6 +373,9 @@ instance (Buildable value, Buildable metadata) =>
              Formatting.build)
             wmValue
             wmMetadata
+
+instance Bifunctor WithMetadata where
+    bimap f g (WithMetadata{..}) = WithMetadata (f wmValue) (g wmMetadata)
 
 $(deriveSafeCopy 0 'base ''Mintette)
 $(deriveSafeCopy 0 'base ''Explorer)
