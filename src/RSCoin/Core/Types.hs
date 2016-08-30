@@ -38,11 +38,10 @@ import qualified Data.Map               as M
 import           Data.Maybe             (fromJust, isJust)
 import           Data.MessagePack       (MessagePack)
 import           Data.SafeCopy          (base, deriveSafeCopy)
-import           Data.Text.Buildable    (Buildable (build))
-import qualified Data.Text.Format       as F
+import qualified Data.Text.Buildable    as B (Buildable (build))
 import           Data.Text.Lazy.Builder (Builder)
 import           Data.Word              (Word8)
-import           Formatting             (bprint, int, string, (%))
+import           Formatting             (bprint, int, string, (%), build, builder)
 import qualified Formatting
 
 import           Serokell.Util.Text     (listBuilderJSON, listBuilderJSONIndent,
@@ -69,15 +68,15 @@ instance Binary Mintette where
 
 $(deriveSafeCopy 0 'base ''Mintette)
 
-instance Buildable Mintette where
-    build Mintette{..} = F.build template (mintetteHost, mintettePort)
+instance B.Buildable Mintette where
+    build Mintette{..} = bprint template mintetteHost mintettePort
       where
-        template = "Mintette ({}:{})"
+        template = "Mintette (" % build % ":" % build % ")"
 
 -- | Mintettes list is stored by Bank and doesn't change over period.
 type Mintettes = [Mintette]
 
-instance Buildable Mintettes where
+instance B.Buildable Mintettes where
     build = listBuilderJSON
 
 -- | Mintette is identified by it's index in mintettes list stored by Bank.
@@ -100,7 +99,7 @@ instance Binary Explorer where
 
 $(deriveSafeCopy 0 'base ''Explorer)
 
-instance Buildable Explorer where
+instance B.Buildable Explorer where
     build Explorer{..} =
         bprint
             ("Explorer (" % string % ":" % int % ", pk: " % Formatting.build %
@@ -116,7 +115,7 @@ type Explorers = [Explorer]
 -- Head of this log is represented by pair of hash and sequence number.
 type ActionLogHead = (ActionLogEntryHash, Int)
 
-instance Buildable ActionLogHead where
+instance B.Buildable ActionLogHead where
     build = pairBuilder
 
 -- | ActionLogHeads is a map containing head for each mintette with whom
@@ -142,17 +141,19 @@ instance Binary CheckConfirmation where
         put ccPeriodId
     get = CheckConfirmation <$> get <*> get <*> get <*> get
 
-instance Buildable CheckConfirmation where
+instance B.Buildable CheckConfirmation where
     build CheckConfirmation{..} =
-        F.build template (ccMintetteKey, ccMintetteSignature, ccHead)
+        bprint template ccMintetteKey ccMintetteSignature ccHead
       where
-        template = "CheckConfirmation (key = {}, sugnature = {}, head = {})"
+        template = "CheckConfirmation (key = " % build %
+                   ", sugnature = " % build %
+                   ", head = " % build % ")"
 
 -- | CheckConfirmations is a bundle of evidence collected by user and
 -- sent to mintette as payload for Commit action.
 type CheckConfirmations = M.Map (MintetteId, AddrId) CheckConfirmation
 
-instance Buildable CheckConfirmations where
+instance B.Buildable CheckConfirmations where
     build = mapBuilder . map (first pairBuilder) . M.assocs
 
 type SignatureActHead = Signature (Transaction, ActionLogHead)
@@ -187,7 +188,7 @@ type ActionLogPair = (ActionLogEntry, ActionLogEntryHash)
 -- | ActionLogEntryHash is a hash of pervious ActionLogPair in log.
 newtype ActionLogEntryHash = ALEHash
     { getALEHash :: Hash ActionLogPair
-    } deriving (Show, Eq, Ord, Binary, Buildable, MessagePack)
+    } deriving (Show, Eq, Ord, Binary, B.Buildable, MessagePack)
 
 putByte :: Word8 -> Put
 putByte = put
@@ -204,30 +205,29 @@ instance Binary ActionLogEntry where
             2 -> CloseEpochEntry <$> get
             _ -> fail "Unexpected ActionLogEntry type"
 
-instance Buildable ActionLogEntry where
-    build (QueryEntry tx) = F.build "Query ({})" $ F.Only tx
+instance B.Buildable ActionLogEntry where
+    build (QueryEntry tx) = bprint ("Query (" % build % ")") tx
     build (CommitEntry tx cc) =
-        F.build templateCommit
-        ( tx
-        , cc)
+        bprint templateCommit tx cc
       where
-        templateCommit = "Commit (tx = {}, confirmations = {})"
+        templateCommit = "Commit (tx = " % build %
+                         ", confirmations = " % build % ")"
     build (CloseEpochEntry heads) =
-        F.build templateClose $ F.Only $ mapBuilder $ M.assocs heads
+        bprint templateClose $ mapBuilder $ M.assocs heads
       where
-        templateClose = "CloseEpoch (heads = {})"
+        templateClose = "CloseEpoch (heads = " % builder % ")"
 
 -- | Action log is a list of entries.
 type ActionLog = [(ActionLogEntry, ActionLogEntryHash)]
 
-instance Buildable ActionLog where
+instance B.Buildable ActionLog where
     build = listBuilderJSONIndent 2 . map pairBuilder
 
 type LBlockInfo = (HBlockHash, ActionLogEntryHash, ActionLogHeads, [Transaction])
 
 newtype LBlockHash = LBlockHash
     { getLBlockHash :: Hash LBlockInfo
-    } deriving (Show, Eq, Binary, Buildable, MessagePack)
+    } deriving (Show, Eq, Binary, B.Buildable, MessagePack)
 
 type SignatureLBlock = Signature LBlockHash
 
@@ -243,24 +243,22 @@ data LBlock = LBlock
     , lbHeads        :: !ActionLogHeads  -- ^ heads received from other mintettes
     } deriving (Show, Eq)
 
-instance Buildable LBlock where
+instance B.Buildable LBlock where
     build LBlock{..} =
-        F.build
+        bprint
             template
-            ( lbHash
-            , listBuilderJSON lbTransactions
-            , lbSignature
-            , mapBuilder $ M.assocs lbHeads)
+            lbHash
+            (listBuilderJSON lbTransactions)
+            lbSignature
+            (mapBuilder $ M.assocs lbHeads)
       where
         template =
-            mconcat
-                [ "LBlock {\n"
-                , "  hash: {}\n"
-                , "  transactions: {}\n"
-                , "  signature: {}\n"
-                , "  heads: {}\n"
-                , "}\n"
-                ]
+             "LBlock {\n" %
+             "  hash: " % build % "\n" %
+             "  transactions: " % builder % "\n"%
+             "  signature: " % build % "\n"%
+             "  heads: " % builder % "\n"%
+             "}\n"
 
 -- | PeriodResult is sent by mintette to bank when period finishes.
 type PeriodResult = (PeriodId, [LBlock], ActionLog)
@@ -278,12 +276,12 @@ type Utxo = M.Map AddrId Address
 -- for the given period.
 type Pset = M.Map AddrId Transaction
 
-instance Buildable Dpk where
+instance B.Buildable Dpk where
     build = listBuilderJSON . map pairBuilder
 
 newtype HBlockHash = HBlockHash
     { getHBlockHash :: Hash (HBlockHash, [Transaction])
-    } deriving (Show,Eq,Binary,Buildable,MessagePack)
+    } deriving (Show,Eq,Binary,B.Buildable,MessagePack)
 
 type SignatureHBlock = Signature HBlockHash
 
@@ -307,27 +305,26 @@ instance Binary HBlock where
         put hbAddresses
     get = HBlock <$> get <*> get <*> get <*> get <*> get
 
-instance Buildable HBlock where
+instance B.Buildable HBlock where
     build HBlock{..} =
-        F.build
+        bprint
             template
-            ( hbHash
-            , listBuilderJSON hbTransactions
-            , hbSignature
-            , hbDpk
-            , listBuilderJSON hbAddresses)
+            hbHash
+            (listBuilderJSON hbTransactions)
+            hbSignature
+            hbDpk
+            (listBuilderJSON hbAddresses)
       where
         template =
-            mconcat
-                [ "HBlock {\n"
-                , "  hash: {}\n"
-                , "  transactions: {}\n"
-                , "  signature: {}\n"
-                , "  dpk: {}\n"
-                , "  addresses: {}\n"
-                , "}\n"]
+            "Block {\n"%
+            "  hash: " % build % "\n"%
+            "  transactions: " % build % "\n"%
+            "  signature: " % build % "\n"%
+            "  dpk: " % build % "\n"%
+            "  addresses: " % builder % "\n"%
+            "}\n"
 
-instance Buildable [HBlock] where
+instance B.Buildable [HBlock] where
   build = listBuilderJSON
 
 type NewMintetteIdPayload = (MintetteId, Utxo, AddressToTxStrategyMap)
@@ -344,59 +341,56 @@ data NewPeriodData = NewPeriodData
     , npdDpk          :: !Dpk                          -- ^ Dpk
     } deriving (Show, Eq)
 
-instance Buildable (AddrId, Address) where
+instance B.Buildable (AddrId, Address) where
     build = pairBuilder
 
-instance Buildable (AddrId, Transaction) where
+instance B.Buildable (AddrId, Transaction) where
     build = pairBuilder
 
-instance Buildable Utxo where
+instance B.Buildable Utxo where
     build mapping = listBuilderJSON $ M.toList mapping
 
-instance Buildable Pset where
+instance B.Buildable Pset where
     build mapping = listBuilderJSON $ M.toList mapping
 
-instance Buildable (Address, Signature a) where
+instance B.Buildable (Address, Signature a) where
     build = pairBuilder
 
-instance Buildable [(Address, Signature a)] where
+instance B.Buildable [(Address, Signature a)] where
     build = listBuilderJSONIndent 2
 
-instance Buildable [NewPeriodData] where
+instance B.Buildable [NewPeriodData] where
     build = listBuilderJSONIndent 2
 
-instance Buildable AddressToTxStrategyMap where
+instance B.Buildable AddressToTxStrategyMap where
     build = mapBuilder . M.assocs
 
-instance Buildable NewMintetteIdPayload where
+instance B.Buildable NewMintetteIdPayload where
     build = tripleBuilder
 
 formatNewPeriodData :: Bool -> NewPeriodData -> Builder
 formatNewPeriodData withPayload NewPeriodData{..}
   | withPayload && isJust npdNewIdPayload =
-      F.build
-          templateWithPayload
-          (npdPeriodId, npdMintettes, fromJust npdNewIdPayload, npdHBlock)
+      bprint templateWithPayload
+          npdPeriodId npdMintettes (fromJust npdNewIdPayload) npdHBlock
   | otherwise =
-      F.build templateWithoutPayload (npdPeriodId, npdMintettes, npdHBlock)
+      bprint templateWithoutPayload npdPeriodId npdMintettes npdHBlock
   where
     templateWithPayload =
-        mconcat
-            [ "NewPeriodData {\n"
-            , "  periodId: {}\n"
-            , "  mintettes: {}\n"
-            , "  newIdPayload: {}\n"
-            , "  HBlock: {}\n"
-            , "}\n"]
+        "NewPeriodData {\n"%
+        "  periodId: " % build % "\n"%
+        "  mintettes: " % build % "\n"%
+        "  newIdPayload: " % build % "\n"%
+        "  HBlock: " % build % "\n"%
+        "}\n"
     templateWithoutPayload =
-        mconcat
-            [ "NewPeriodData {\n"
-            , "  periodId: {}\n"
-            , "  mintettes: {}\n"
-            , "  HBlock: {}\n"
-            , "}\n"]
+        "NewPeriodData {\n" %
+        "  periodId: " % build % "\n" %
+        "  mintettes: " % build % "\n" %
+        "  HBlock: " % build % "\n" %
+        "}\n"
 
-instance Buildable NewPeriodData where
+instance B.Buildable NewPeriodData where
     build = formatNewPeriodData True
 
 data WithMetadata value metadata = WithMetadata
@@ -404,8 +398,8 @@ data WithMetadata value metadata = WithMetadata
     , wmMetadata :: metadata
     }
 
-instance (Buildable value, Buildable metadata) =>
-         Buildable (WithMetadata value metadata) where
+instance (B.Buildable value, B.Buildable metadata) =>
+         B.Buildable (WithMetadata value metadata) where
     build WithMetadata{..} =
         bprint
             ("WithMetadata:\n— value: " % Formatting.build % "\n— metadata: " %
