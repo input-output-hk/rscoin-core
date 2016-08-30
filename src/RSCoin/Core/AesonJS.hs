@@ -11,26 +11,30 @@ module RSCoin.Core.AesonJS
 import           Data.Aeson             (FromJSON (..), ToJSON, toJSON)
 import           Data.Aeson.TH          (deriveJSON)
 import           Data.Aeson.Types       (Value (..))
-import qualified Data.Text              as T
-
-import           Numeric                (readFloat)
+import           Data.Monoid            ((<>))
 
 import           Serokell.Aeson.Options (defaultOptionsPS)
-import           Serokell.Util.Text     (showFixedPretty')
+import           Serokell.Util.Text     (readFractional, showFixedPretty')
 
 import           RSCoin.Core.Primitives (Address, Coin, CoinAmount (..), Color,
                                          Transaction)
 import           RSCoin.Core.Strategy   (AllocationAddress, AllocationStrategy,
                                          PartyAddress, TxStrategy)
 
-newtype JS a = JS { getJS :: a }
-    deriving (Show)
+newtype JS a = JS
+    { getJS :: a
+    } deriving (Show)
 
 instance ToJSON (JS CoinAmount) where
     toJSON = String . showFixedPretty' 5 . getAmount . getJS
 
 instance FromJSON (JS CoinAmount) where
-    parseJSON (String v ) = pure . JS . CoinAmount . fst . head . readFloat $ T.unpack v -- FIXME: report error if readFloat fails
+    -- TODO: use Parser from Aeson to report error
+    parseJSON (String v) =
+        either
+            (error . ("Can't parse `JS CoinAmount`: " <>))
+            (pure . JS . CoinAmount) $
+        readFractional v
     parseJSON _ = error "Expected `JS CoinAmount` to be represented as String"
 
 $(deriveJSON defaultOptionsPS ''Address)
