@@ -12,13 +12,12 @@ module RSCoin.Core.Primitives
        , AddrId
        , Transaction (..)
        , TransactionId
-       , EmissionId
        , grey
        ) where
 
-import           Data.Binary         (Binary (get, put))
+import           Data.Binary         (Binary)
 import           Data.Data           (Data)
-import           Data.Hashable       (Hashable (hashWithSalt))
+import           Data.Hashable       (Hashable)
 import           Data.Ord            (comparing)
 import           Data.SafeCopy       (base, deriveSafeCopy)
 import qualified Data.Text.Buildable as B (Buildable (build))
@@ -55,12 +54,9 @@ reportError s c1 c2 =
                 " of coins with different colors: " ++
                 show c1 ++ " " ++ show c2
 
-instance Binary Coin where
-    put Coin{..} = put (getColor, getCoin)
-    get = uncurry Coin <$> get
+instance Binary Coin
 
-instance Hashable Coin where
-    hashWithSalt s Coin{..} = hashWithSalt s (getColor, getCoin)
+instance Hashable Coin
 
 instance B.Buildable Coin where
     build (Coin col c) =
@@ -87,11 +83,7 @@ instance Num Coin where
 -- It is simply a public key.
 newtype Address = Address
     { getAddress :: PublicKey
-    } deriving (Show,Ord,B.Buildable,Eq,Hashable,Generic)
-
-instance Binary Address where
-    put Address{..} = put getAddress
-    get = Address <$> get
+    } deriving (Show,Ord,B.Buildable,Eq,Hashable,Generic,Binary)
 
 -- | AddrId identifies usage of address as output of transaction.
 -- Basically, it is tuple of transaction identifier, index in list of outputs
@@ -113,12 +105,9 @@ data Transaction = Transaction
 instance Ord Transaction where
     compare = comparing hash
 
-instance Binary Transaction where
-    put Transaction{..} = put (txInputs, txOutputs)
-    get = uncurry Transaction <$> get
+instance Binary Transaction
 
-instance Hashable Transaction where
-    hashWithSalt s Transaction{..} = hashWithSalt s (txInputs, txOutputs)
+instance Hashable Transaction
 
 instance B.Buildable Transaction where
     build Transaction{..} =
@@ -131,10 +120,6 @@ instance B.Buildable Transaction where
 
 -- | Transaction is identified by its hash
 type TransactionId = Hash Transaction
-
--- | Emission is identified by transaction hash. Period 0 doesn't
--- contain emission transaction so EmissionId for period 0 is Nothing
-type EmissionId = Maybe TransactionId
 
 $(deriveSafeCopy 0 'base ''Address)
 $(deriveSafeCopy 0 'base ''Color)

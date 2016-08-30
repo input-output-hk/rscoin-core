@@ -58,6 +58,7 @@ import qualified Network.MessagePack.Client as MP (RpcError (..))
 import           Safe                       (atMay)
 import           System.Random              (randomRIO)
 
+import           Serokell.Data.Variant      (Variant)
 import           Serokell.Util.Text         (listBuilderJSON,
                                              listBuilderJSONIndent, mapBuilder,
                                              pairBuilder, show')
@@ -67,8 +68,8 @@ import           RSCoin.Core.Error          (rscExceptionFromException,
                                              rscExceptionToException)
 import           RSCoin.Core.Logging        (WithNamedLogger (..))
 import qualified RSCoin.Core.Logging        as L
-import           RSCoin.Core.Primitives     (AddrId, Address, EmissionId,
-                                             Transaction, TransactionId)
+import           RSCoin.Core.Primitives     (AddrId, Address, Transaction,
+                                             TransactionId)
 import qualified RSCoin.Core.Protocol       as P
 import           RSCoin.Core.Strategy       (AddressToTxStrategyMap,
                                              AllocationAddress, AllocationInfo,
@@ -80,7 +81,7 @@ import           RSCoin.Core.Types          (ActionLog, CheckConfirmation,
                                              Explorer (..), Explorers, HBlock,
                                              LBlock, Mintette, MintetteId,
                                              Mintettes, NewPeriodData, PeriodId,
-                                             PeriodResult, Utxo)
+                                             PeriodResult, Utxo, WithMetadata)
 import           RSCoin.Timed               (MonadTimed, MonadTimedError (..),
                                              WorkMode)
 
@@ -396,10 +397,13 @@ announceNewPeriod mintette npd = do
     handleEither $
         callMintette mintette $ P.call (P.RSCMintette P.AnnounceNewPeriod) npd
 
-
 announceNewBlock
     :: WorkMode m
-    => Explorer -> PeriodId -> (HBlock, EmissionId) -> Signature (PeriodId, HBlock) -> m PeriodId
+    => Explorer
+    -> PeriodId
+    -> WithMetadata HBlock Variant
+    -> Signature (PeriodId, (WithMetadata HBlock Variant))
+    -> m PeriodId
 announceNewBlock explorer pId blk signature =
     withResult infoMessage successMessage $
     P.callExplorer explorer $

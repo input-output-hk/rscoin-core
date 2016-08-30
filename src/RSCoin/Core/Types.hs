@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveGeneric        #-}
 {-# LANGUAGE FlexibleInstances    #-}
 {-# LANGUAGE TemplateHaskell      #-}
 {-# LANGUAGE TypeSynonymInstances #-}
@@ -33,16 +34,18 @@ module RSCoin.Core.Types
        ) where
 
 import           Control.Arrow          (first)
-import           Data.Binary            (Binary (get, put), Get, Put)
+import           Data.Bifunctor         (Bifunctor (bimap))
+import           Data.Binary            (Binary)
 import qualified Data.Map               as M
 import           Data.Maybe             (fromJust, isJust)
 import           Data.MessagePack       (MessagePack)
 import           Data.SafeCopy          (base, deriveSafeCopy)
 import qualified Data.Text.Buildable    as B (Buildable (build))
 import           Data.Text.Lazy.Builder (Builder)
-import           Data.Word              (Word8)
-import           Formatting             (bprint, int, string, (%), build, builder)
+import           Formatting             (bprint, build, builder, int, string,
+                                         (%))
 import qualified Formatting
+import           GHC.Generics           (Generic)
 
 import           Serokell.Util.Text     (listBuilderJSON, listBuilderJSONIndent,
                                          mapBuilder, pairBuilder, tripleBuilder)
@@ -58,15 +61,9 @@ type PeriodId = Int
 data Mintette = Mintette
     { mintetteHost :: !String
     , mintettePort :: !Int
-    } deriving (Show, Eq, Ord)
+    } deriving (Show, Eq, Ord, Generic)
 
-instance Binary Mintette where
-    put Mintette {..} = do
-        put mintetteHost
-        put mintettePort
-    get = Mintette <$> get <*> get
-
-$(deriveSafeCopy 0 'base ''Mintette)
+instance Binary Mintette
 
 instance B.Buildable Mintette where
     build Mintette{..} = bprint template mintetteHost mintettePort
@@ -88,16 +85,9 @@ data Explorer = Explorer
     { explorerHost :: !String
     , explorerPort :: !Int
     , explorerKey  :: !PublicKey
-    } deriving (Show,Eq,Ord)
+    } deriving (Show,Eq,Ord,Generic)
 
-instance Binary Explorer where
-    put Explorer {..} = do
-        put explorerHost
-        put explorerPort
-        put explorerKey
-    get = Explorer <$> get <*> get <*> get
-
-$(deriveSafeCopy 0 'base ''Explorer)
+instance Binary Explorer
 
 instance B.Buildable Explorer where
     build Explorer{..} =
@@ -131,15 +121,9 @@ data CheckConfirmation = CheckConfirmation
     , ccMintetteSignature :: !SignatureActLog -- ^ signature for (tx, addrid, head)
     , ccHead              :: !ActionLogHead   -- ^ head of log
     , ccPeriodId          :: !PeriodId        -- ^ period id when confirmation was made
-    } deriving (Show, Eq, Ord)
+    } deriving (Show, Eq, Ord, Generic)
 
-instance Binary CheckConfirmation where
-    put CheckConfirmation{..} = do
-        put ccMintetteKey
-        put ccMintetteSignature
-        put ccHead
-        put ccPeriodId
-    get = CheckConfirmation <$> get <*> get <*> get <*> get
+instance Binary CheckConfirmation
 
 instance B.Buildable CheckConfirmation where
     build CheckConfirmation{..} =
@@ -164,14 +148,9 @@ data CommitAcknowledgment = CommitAcknowledgment
     { caMintetteKey       :: !PublicKey        -- ^ key of corresponding mintette
     , caMintetteSignature :: !SignatureActHead -- ^ signature for (tx, logHead)
     , caHead              :: !ActionLogHead    -- ^ head of log
-    } deriving (Show, Eq)
+    } deriving (Show, Eq, Generic)
 
-instance Binary CommitAcknowledgment where
-    put CommitAcknowledgment{..} = do
-        put caMintetteKey
-        put caMintetteSignature
-        put caHead
-    get = CommitAcknowledgment <$> get <*> get <*> get
+instance Binary CommitAcknowledgment
 
 -- | Each mintette mantains a high-integrity action log, consisting of entries.
 data ActionLogEntry
@@ -179,7 +158,7 @@ data ActionLogEntry
     | CommitEntry !Transaction
                   !CheckConfirmations
     | CloseEpochEntry !ActionLogHeads
-    deriving (Show, Eq)
+    deriving (Show, Eq, Generic)
 
 -- | ActionLogPairs are stored in ActionLog. This pair constists of
 -- action log entry and hash of previous pair in log.
@@ -190,20 +169,7 @@ newtype ActionLogEntryHash = ALEHash
     { getALEHash :: Hash ActionLogPair
     } deriving (Show, Eq, Ord, Binary, B.Buildable, MessagePack)
 
-putByte :: Word8 -> Put
-putByte = put
-
-instance Binary ActionLogEntry where
-    put (QueryEntry tr)         = putByte 0 >> put tr
-    put (CommitEntry tr cc)     = putByte 1 >> put (tr, cc)
-    put (CloseEpochEntry heads) = putByte 2 >> put heads
-    get = do
-        t <- get :: Get Word8
-        case t of
-            0 -> QueryEntry <$> get
-            1 -> uncurry CommitEntry <$> get
-            2 -> CloseEpochEntry <$> get
-            _ -> fail "Unexpected ActionLogEntry type"
+instance Binary ActionLogEntry
 
 instance B.Buildable ActionLogEntry where
     build (QueryEntry tx) = bprint ("Query (" % build % ")") tx
@@ -241,7 +207,7 @@ data LBlock = LBlock
     , lbTransactions :: ![Transaction]   -- ^ txset
     , lbSignature    :: !SignatureLBlock -- ^ signature given by mintette for hash
     , lbHeads        :: !ActionLogHeads  -- ^ heads received from other mintettes
-    } deriving (Show, Eq)
+    } deriving (Show, Eq, Generic)
 
 instance B.Buildable LBlock where
     build LBlock{..} =
@@ -294,16 +260,9 @@ data HBlock = HBlock
     , hbSignature    :: !SignatureHBlock
     , hbDpk          :: !Dpk
     , hbAddresses    :: !AddressToTxStrategyMap
-    } deriving (Show, Eq)
+    } deriving (Show, Eq, Generic)
 
-instance Binary HBlock where
-    put HBlock{..} = do
-        put hbHash
-        put hbTransactions
-        put hbSignature
-        put hbDpk
-        put hbAddresses
-    get = HBlock <$> get <*> get <*> get <*> get <*> get
+instance Binary HBlock
 
 instance B.Buildable HBlock where
     build HBlock{..} =
@@ -325,7 +284,7 @@ instance B.Buildable HBlock where
             "}\n"
 
 instance B.Buildable [HBlock] where
-  build = listBuilderJSON
+    build = listBuilderJSON
 
 type NewMintetteIdPayload = (MintetteId, Utxo, AddressToTxStrategyMap)
 
@@ -396,7 +355,10 @@ instance B.Buildable NewPeriodData where
 data WithMetadata value metadata = WithMetadata
     { wmValue    :: value
     , wmMetadata :: metadata
-    }
+    } deriving (Show, Eq, Generic)
+
+instance (Binary value, Binary metadata) =>
+         Binary (WithMetadata value metadata)
 
 instance (B.Buildable value, B.Buildable metadata) =>
          B.Buildable (WithMetadata value metadata) where
@@ -407,6 +369,11 @@ instance (B.Buildable value, B.Buildable metadata) =>
             wmValue
             wmMetadata
 
+instance Bifunctor WithMetadata where
+    bimap f g (WithMetadata{..}) = WithMetadata (f wmValue) (g wmMetadata)
+
+$(deriveSafeCopy 0 'base ''Mintette)
+$(deriveSafeCopy 0 'base ''Explorer)
 $(deriveSafeCopy 0 'base ''CheckConfirmation)
 $(deriveSafeCopy 0 'base ''CommitAcknowledgment)
 $(deriveSafeCopy 0 'base ''ActionLogEntryHash)

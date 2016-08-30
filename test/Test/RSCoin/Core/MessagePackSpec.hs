@@ -122,6 +122,8 @@ spec =
                 \(a :: C.ActionLogEntry) -> a === mid a
             prop "BankLocalControlRequest" $
                 \(a :: C.BankLocalControlRequest) -> a === mid a
+            prop "WithMetadata" $
+                \(a :: C.WithMetadata Int64 String) -> a === mid a
 
 mid :: MessagePack a => a -> a
 mid = fromJust . unpack . pack

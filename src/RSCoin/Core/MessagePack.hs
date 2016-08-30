@@ -197,3 +197,8 @@ instance MessagePack C.BankLocalControlRequest where
             4 -> C.FinishPeriod <$> fromObject payload
             5 -> uncurry2 C.DumpStatistics <$> fromObject payload
             _ -> Nothing
+
+instance (MessagePack a, MessagePack b) =>
+         MessagePack (C.WithMetadata a b) where
+    toObject C.WithMetadata{..} = toObject (wmValue, wmMetadata)
+    fromObject = fmap (uncurry C.WithMetadata) . fromObject
