@@ -1,5 +1,4 @@
 {-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE TemplateHaskell   #-}
 {-# LANGUAGE ViewPatterns      #-}
 
 -- | Signing-related functions and types.
@@ -14,6 +13,8 @@ module RSCoin.Core.Crypto.Signing
        , keyGen
        , deterministicKeyGen
        , constructSignature
+       , writeSignature
+       , readSignature
        , constructPublicKey
        , writePublicKey
        , readPublicKey
@@ -241,6 +242,18 @@ constructSignature =
   where
     trim = T.dropAround isSpace
 
+-- | Write base64 signature to file
+writeSignature :: FilePath -> Signature a -> IO ()
+writeSignature fp sig = do
+    ensureDirectoryExists fp
+    TIO.writeFile fp $ show' sig
+
+-- | Read base64 signature from file
+readSignature :: FilePath -> IO (Signature a)
+readSignature fp =
+    (constructSignature <$> TIO.readFile fp) >>=
+    maybe (throwText "Failed to parse signature") return
+
 -- | Constructs public key from UTF-8 base64 text.
 constructPublicKey :: Text -> Maybe PublicKey
 constructPublicKey =
@@ -257,8 +270,8 @@ writePublicKey fp k = do
 -- | Read PublicKey from a file (base64).
 readPublicKey :: FilePath -> IO PublicKey
 readPublicKey fp =
-    maybe (throwText "Failed to parse public key") return =<<
-    (constructPublicKey <$> TIO.readFile fp)
+    (constructPublicKey <$> TIO.readFile fp) >>=
+    maybe (throwText "Failed to parse public key") return
 
 -- | Write SecretKey to a file (binary format).
 writeSecretKey :: FilePath -> SecretKey -> IO ()
