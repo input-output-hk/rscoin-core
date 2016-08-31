@@ -37,6 +37,7 @@ module RSCoin.Core.Types
 import           Control.Arrow          (first)
 import           Data.Bifunctor         (Bifunctor (bimap))
 import           Data.Binary            (Binary)
+import           Data.Binary.Orphans    ()
 import qualified Data.Map               as M
 import           Data.Maybe             (fromJust, isJust)
 import           Data.MessagePack       (MessagePack)
@@ -373,6 +374,8 @@ instance B.Buildable HBlockMetadata where
              build)
             (realToFrac hbmTimestamp :: Double)
             hbmEmission
+
+instance Binary HBlockMetadata
 
 -- | WithMetadata type is used to associate some metadata with some
 -- value non-intrusively.
