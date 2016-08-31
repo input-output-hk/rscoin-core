@@ -19,7 +19,7 @@ import           RSCoin.Core.Primitives (Address, Coin, CoinAmount (..), Color,
                                          Transaction)
 import           RSCoin.Core.Strategy   (AllocationAddress, AllocationStrategy,
                                          PartyAddress, TxStrategy)
-import           RSCoin.Core.Types      (HBlockMetadata)
+import           RSCoin.Core.Types      (HBlockMetadata, WithMetadata)
 
 instance ToJSON CoinAmount where
     toJSON = toJSON . (realToFrac :: CoinAmount -> Double)
@@ -38,3 +38,4 @@ $(deriveJSON defaultOptionsPS ''HBlockMetadata)
 $(deriveJSON defaultOptionsPS ''PartyAddress)
 $(deriveJSON defaultOptionsPS ''Transaction)
 $(deriveJSON defaultOptionsPS ''TxStrategy)
+$(deriveJSON defaultOptionsPS ''WithMetadata)
