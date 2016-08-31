@@ -28,10 +28,14 @@ import           RSCoin.Core.Primitives (AddrId, Address (..), Coin (..),
 
 -- | Validates that sum of inputs for each color isn't greater than
 -- sum of outputs, and what's left can be painted by grey coins.
-validateSum :: Transaction -> Bool
-validateSum Transaction{..} =
+validateTxSum :: Transaction -> Bool
+validateTxSum Transaction{..} =
     and [ totalInputs >= totalOutputs
-        , greyInputs >= greyOutputs + totalUnpaintedSum ]
+        , greyInputs >= greyOutputs + totalUnpaintedSum
+        , not $ null txInputs
+        , not $ null txOutputs
+        , null zeroOrNegInputs
+        , null zeroOrNegOutputs]
   where
     inputs  = coinsToMap $ map (view _3) txInputs
     outputs = coinsToMap $ map snd txOutputs
@@ -49,6 +53,17 @@ validateSum Transaction{..} =
            else M.insert color (outputOfThisColor - inputOfThisColor) unp
     unpainted = foldr' foldfoo0 M.empty txColors
     totalUnpaintedSum = sum $ map getCoin $ M.elems unpainted
+    zeroOrNegInputs = filter (> 0) $ map (getCoin . view _3) txInputs
+    zeroOrNegOutputs = filter (> 0) $ map (getCoin . snd) txOutputs
+
+canonizeTx :: Transaction -> Maybe Transaction
+canonizeTx Transaction{..} =
+    case (txInputs', txOutputs') of
+             (_ : _, _ : _) -> Just $ Transaction txInputs txOutputs
+             (_, _)         -> Nothing
+  where
+    txInputs' = filter ((> 0) . getCoin . view _3) txInputs
+    txOutputs' = filter ((> 0) . getCoin . snd) txOutputs
 
 -- | Validates that signature is issued by public key associated with given
 -- address for the transaction.
