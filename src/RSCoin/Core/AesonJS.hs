@@ -10,11 +10,10 @@ module RSCoin.Core.AesonJS
 
 import           Data.Aeson             (FromJSON (..), ToJSON, toJSON)
 import           Data.Aeson.TH          (deriveJSON)
-import           Data.Aeson.Types       (Value (..))
-import           Data.Monoid            ((<>))
+import           Data.Aeson.Types       (Value (Number), typeMismatch)
+import           Data.Scientific        (toRealFloat)
 
 import           Serokell.Aeson.Options (defaultOptionsPS)
-import           Serokell.Util.Text     (readFractional, showFixedPretty')
 
 import           RSCoin.Core.Primitives (Address, Coin, CoinAmount (..), Color,
                                          Transaction)
@@ -23,16 +22,12 @@ import           RSCoin.Core.Strategy   (AllocationAddress, AllocationStrategy,
 import           RSCoin.Core.Types      (HBlockMetadata)
 
 instance ToJSON CoinAmount where
-    toJSON = String . showFixedPretty' 5 . getAmount
+    toJSON = toJSON . (realToFrac :: CoinAmount -> Double)
 
 instance FromJSON CoinAmount where
-    -- TODO: use Parser from Aeson to report error
-    parseJSON (String v) =
-        either
-            (error . ("Can't parse `JS CoinAmount`: " <>))
-            (pure . CoinAmount) $
-        readFractional v
-    parseJSON _ = error "Expected `JS CoinAmount` to be represented as String"
+    parseJSON (Number n) =
+        pure . (realToFrac :: Double -> CoinAmount) . toRealFloat $ n
+    parseJSON val = typeMismatch "CoinAmount" val
 
 $(deriveJSON defaultOptionsPS ''Address)
 $(deriveJSON defaultOptionsPS ''AllocationAddress)
