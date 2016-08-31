@@ -11,6 +11,7 @@ import           Test.Hspec.QuickCheck (prop)
 import           Test.QuickCheck       ((===))
 
 import qualified RSCoin.Core           as C
+import           RSCoin.Core.Aeson     ()
 
 spec :: Spec
 spec =
