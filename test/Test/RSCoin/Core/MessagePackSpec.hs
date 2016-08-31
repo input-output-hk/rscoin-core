@@ -122,6 +122,8 @@ spec =
                 \(a :: C.ActionLogEntry) -> a === mid a
             prop "BankLocalControlRequest" $
                 \(a :: C.BankLocalControlRequest) -> a === mid a
+            prop "HBlockMetadata" $
+                \(a :: C.HBlockMetadata) -> a === mid a
             prop "WithMetadata" $
                 \(a :: C.WithMetadata Int64 String) -> a === mid a
 

@@ -364,7 +364,7 @@ type EmissionId = TransactionId
 data HBlockMetadata = HBlockMetadata
     { hbmTimestamp :: !POSIXTime
     , hbmEmission  :: !EmissionId
-    } deriving (Show, Generic)
+    } deriving (Show, Eq, Generic)
 
 instance B.Buildable HBlockMetadata where
     build HBlockMetadata {..} =
