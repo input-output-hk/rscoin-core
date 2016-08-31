@@ -44,8 +44,8 @@ import           Data.SafeCopy          (base, deriveSafeCopy)
 import qualified Data.Text.Buildable    as B (Buildable (build))
 import           Data.Text.Lazy.Builder (Builder)
 import           Data.Time.Clock.POSIX  (POSIXTime)
-import           Formatting             (bprint, build, builder, int, string,
-                                         (%))
+import           Formatting             (bprint, build, builder, float, int,
+                                         string, (%))
 import qualified Formatting
 import           GHC.Generics           (Generic)
 
@@ -365,6 +365,14 @@ data HBlockMetadata = HBlockMetadata
     { hbmTimestamp :: !POSIXTime
     , hbmEmission  :: !EmissionId
     } deriving (Show, Generic)
+
+instance B.Buildable HBlockMetadata where
+    build HBlockMetadata {..} =
+        bprint
+            ("HBlockMetadata (timestamp = " % float % ", emission id is " %
+             build)
+            (realToFrac hbmTimestamp :: Double)
+            hbmEmission
 
 -- | WithMetadata type is used to associate some metadata with some
 -- value non-intrusively.
