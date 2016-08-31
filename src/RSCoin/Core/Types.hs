@@ -29,6 +29,7 @@ module RSCoin.Core.Types
        , HBlock (..)
        , HBlockHash (..)
        , NewPeriodData (..)
+       , HBlockMetadata (..)
        , WithMetadata (..)
        , formatNewPeriodData
        ) where
@@ -42,6 +43,7 @@ import           Data.MessagePack       (MessagePack)
 import           Data.SafeCopy          (base, deriveSafeCopy)
 import qualified Data.Text.Buildable    as B (Buildable (build))
 import           Data.Text.Lazy.Builder (Builder)
+import           Data.Time.Clock.POSIX  (POSIXTime)
 import           Formatting             (bprint, build, builder, int, string,
                                          (%))
 import qualified Formatting
@@ -51,7 +53,8 @@ import           Serokell.Util.Text     (listBuilderJSON, listBuilderJSONIndent,
                                          mapBuilder, pairBuilder, tripleBuilder)
 
 import           RSCoin.Core.Crypto     (Hash, PublicKey, Signature)
-import           RSCoin.Core.Primitives (AddrId, Address, Transaction)
+import           RSCoin.Core.Primitives (AddrId, Address, Transaction,
+                                         TransactionId)
 import           RSCoin.Core.Strategy   (AddressToTxStrategyMap)
 
 -- | Periods are indexed by sequence of numbers starting from 0.
@@ -352,6 +355,19 @@ formatNewPeriodData withPayload NewPeriodData{..}
 instance B.Buildable NewPeriodData where
     build = formatNewPeriodData True
 
+-- | Emission is identified by transaction hash.
+type EmissionId = TransactionId
+
+-- | HBlockMetadata contains metadata associated with some
+-- higher-level block. This metadata is not mentioned in paper, so
+-- it's separated into this type. It's used by extensions.
+data HBlockMetadata = HBlockMetadata
+    { hbmTimestamp :: !POSIXTime
+    , hbmEmission  :: !EmissionId
+    } deriving (Show, Generic)
+
+-- | WithMetadata type is used to associate some metadata with some
+-- value non-intrusively.
 data WithMetadata value metadata = WithMetadata
     { wmValue    :: value
     , wmMetadata :: metadata
@@ -383,4 +399,5 @@ $(deriveSafeCopy 0 'base ''LBlock)
 $(deriveSafeCopy 0 'base ''HBlockHash)
 $(deriveSafeCopy 0 'base ''HBlock)
 $(deriveSafeCopy 0 'base ''NewPeriodData)
+$(deriveSafeCopy 0 'base ''HBlockMetadata)
 $(deriveSafeCopy 0 'base ''WithMetadata)

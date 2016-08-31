@@ -10,7 +10,7 @@ module RSCoin.Core.AesonJS
 
 import           Data.Aeson             (FromJSON (..), ToJSON, toJSON)
 import           Data.Aeson.TH          (deriveJSON)
-import           Data.Aeson.Types       (Encoding (..), Value (..))
+import           Data.Aeson.Types       (Value (..))
 import           Data.Monoid            ((<>))
 
 import           Serokell.Aeson.Options (defaultOptionsPS)
@@ -20,6 +20,7 @@ import           RSCoin.Core.Primitives (Address, Coin, CoinAmount (..), Color,
                                          Transaction)
 import           RSCoin.Core.Strategy   (AllocationAddress, AllocationStrategy,
                                          PartyAddress, TxStrategy)
+import           RSCoin.Core.Types      (HBlockMetadata)
 
 instance ToJSON CoinAmount where
     toJSON = String . showFixedPretty' 5 . getAmount
@@ -38,6 +39,7 @@ $(deriveJSON defaultOptionsPS ''AllocationAddress)
 $(deriveJSON defaultOptionsPS ''AllocationStrategy)
 $(deriveJSON defaultOptionsPS ''Coin)
 $(deriveJSON defaultOptionsPS ''Color)
+$(deriveJSON defaultOptionsPS ''HBlockMetadata)
 $(deriveJSON defaultOptionsPS ''PartyAddress)
 $(deriveJSON defaultOptionsPS ''Transaction)
 $(deriveJSON defaultOptionsPS ''TxStrategy)
