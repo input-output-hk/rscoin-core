@@ -4,7 +4,8 @@
 -- | Functions related to Transaction
 
 module RSCoin.Core.Transaction
-       ( validateSum
+       ( canonizeTx
+       , validateTxSum
        , validateSignature
        , getAmountByAddress
        , getAddrIdByAddress
