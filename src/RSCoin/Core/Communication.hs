@@ -58,7 +58,6 @@ import qualified Network.MessagePack.Client as MP (RpcError (..))
 import           Safe                       (atMay)
 import           System.Random              (randomRIO)
 
-import           Serokell.Data.Variant      (Variant)
 import           Serokell.Util.Text         (listBuilderJSON,
                                              listBuilderJSONIndent, mapBuilder,
                                              pairBuilder, show')
@@ -79,8 +78,9 @@ import           RSCoin.Core.Types          (ActionLog, CheckConfirmation,
                                              CheckConfirmations,
                                              CommitAcknowledgment,
                                              Explorer (..), Explorers, HBlock,
-                                             LBlock, Mintette, MintetteId,
-                                             Mintettes, NewPeriodData, PeriodId,
+                                             HBlockMetadata, LBlock, Mintette,
+                                             MintetteId, Mintettes,
+                                             NewPeriodData, PeriodId,
                                              PeriodResult, Utxo, WithMetadata)
 import           RSCoin.Timed               (MonadTimed, MonadTimedError (..),
                                              WorkMode)
@@ -401,8 +401,8 @@ announceNewBlock
     :: WorkMode m
     => Explorer
     -> PeriodId
-    -> WithMetadata HBlock Variant
-    -> Signature (PeriodId, (WithMetadata HBlock Variant))
+    -> WithMetadata HBlock HBlockMetadata
+    -> Signature (PeriodId, (WithMetadata HBlock HBlockMetadata))
     -> m PeriodId
 announceNewBlock explorer pId blk signature =
     withResult infoMessage successMessage $
