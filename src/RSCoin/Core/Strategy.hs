@@ -155,7 +155,7 @@ instance Buildable PartyAddress where
 data AllocationStrategy = AllocationStrategy
     { _sigNumber  :: Int                        -- ^ Number of required signatures in transaction
     , _allParties :: HashSet AllocationAddress  -- ^ 'Set' of all parties for this address
-    } deriving (Eq, Show)
+    } deriving (Eq, Show, Generic, Hashable)
 
 $(deriveSafeCopy 0 'base ''AllocationStrategy)
 $(makeLenses ''AllocationStrategy)
@@ -181,7 +181,7 @@ instance Buildable AllocationStrategy where
 data AllocationInfo = AllocationInfo
     { _allocationStrategy   :: AllocationStrategy
     , _currentConfirmations :: HashMap AllocationAddress Address
-    } deriving (Eq, Show)
+    } deriving (Eq, Show, Generic, Hashable)
 
 $(deriveSafeCopy 0 'base ''AllocationInfo)
 $(makeLenses ''AllocationInfo)
