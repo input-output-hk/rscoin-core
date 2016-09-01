@@ -3,7 +3,7 @@
 module RSCoin.Core.MessagePack  () where
 
 import           Control.Lens               (view, _3)
-import           Data.Bifunctor             (bimap)
+import           Data.Bifunctor             (bimap, first)
 import           Data.Binary                (decodeOrFail, encode)
 import qualified Data.ByteString.Lazy       as BSL
 import           Data.Hashable              (Hashable)
@@ -13,6 +13,7 @@ import           Data.MessagePack           (MessagePack (fromObject, toObject),
                                              pack, unpack)
 import           Data.Ratio                 (Ratio, denominator, numerator, (%))
 import qualified Data.Set                   as S
+import           Data.Time.Clock.POSIX      (POSIXTime)
 import           Data.Tuple.Curry           (uncurryN)
 
 import           RSCoin.Core.Crypto         ()
@@ -197,6 +198,15 @@ instance MessagePack C.BankLocalControlRequest where
             4 -> C.FinishPeriod <$> fromObject payload
             5 -> uncurry2 C.DumpStatistics <$> fromObject payload
             _ -> Nothing
+
+instance MessagePack C.HBlockMetadata where
+    toObject C.HBlockMetadata {..} =
+        toObject ((realToFrac hbmTimestamp) :: Double, hbmEmission)
+    fromObject =
+        fmap
+            (uncurry2 C.HBlockMetadata .
+             first (realToFrac :: Double -> POSIXTime)) .
+        fromObject
 
 instance (MessagePack a, MessagePack b) =>
          MessagePack (C.WithMetadata a b) where

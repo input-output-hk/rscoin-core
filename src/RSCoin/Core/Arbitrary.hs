@@ -139,6 +139,9 @@ instance Arbitrary C.BankLocalControlRequest where
                       , C.RemoveExplorer <$> arbitrary <*> arbitrary <*> arbitrary
                       ]
 
+instance Arbitrary C.HBlockMetadata where
+    arbitrary = C.HBlockMetadata <$> pure 42 <*> arbitrary
+
 instance (Arbitrary a, Arbitrary b) =>
          Arbitrary (C.WithMetadata a b) where
     arbitrary = C.WithMetadata <$> arbitrary <*> arbitrary
