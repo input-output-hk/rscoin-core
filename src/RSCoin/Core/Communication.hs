@@ -342,7 +342,7 @@ allocateMultisignatureAddress
     -> PartyAddress
     -> AllocationStrategy
     -> Signature (MSAddress, AllocationStrategy)
-    -> Maybe (PublicKey, Signature (MSAddress, AllocationStrategy))
+    -> Maybe (PublicKey, Signature PublicKey)
     -> m ()
 allocateMultisignatureAddress msAddr partyAddr allocStrat signature mMasterCheck = do
     L.logDebug $ sformat
