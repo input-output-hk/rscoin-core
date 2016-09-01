@@ -5,7 +5,7 @@
 
 module RSCoin.Core.Transaction
        ( canonizeTx
-       , validateTxSum
+       , validateTxPure
        , validateSignature
        , getAmountByAddress
        , getAddrIdByAddress
@@ -29,8 +29,8 @@ import           RSCoin.Core.Primitives (AddrId, Address (..), Coin (..),
 
 -- | Validates that sum of inputs for each color isn't greater than
 -- sum of outputs, and what's left can be painted by grey coins.
-validateTxSum :: Transaction -> Bool
-validateTxSum Transaction{..} =
+validateTxPure :: Transaction -> Bool
+validateTxPure Transaction{..} =
     and [ totalInputs >= totalOutputs
         , greyInputs >= greyOutputs + totalUnpaintedSum
         , not $ null txInputs
