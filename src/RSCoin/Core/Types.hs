@@ -364,16 +364,16 @@ type EmissionId = TransactionId
 -- it's separated into this type. It's used by extensions.
 data HBlockMetadata = HBlockMetadata
     { hbmTimestamp :: !POSIXTime
-    , hbmEmission  :: !EmissionId
+    , hbmEmission  :: ![EmissionId]
     } deriving (Show, Eq, Generic)
 
 instance B.Buildable HBlockMetadata where
     build HBlockMetadata {..} =
         bprint
-            ("HBlockMetadata (timestamp = " % float % ", emission id is " %
+            ("HBlockMetadata (timestamp = " % float % ", emission ids are " %
              build)
             (realToFrac hbmTimestamp :: Double)
-            hbmEmission
+            (listBuilderJSON hbmEmission)
 
 instance Binary HBlockMetadata
 
@@ -397,7 +397,7 @@ instance (B.Buildable value, B.Buildable metadata) =>
             wmMetadata
 
 instance Bifunctor WithMetadata where
-    bimap f g (WithMetadata{..}) = WithMetadata (f wmValue) (g wmMetadata)
+    bimap f g WithMetadata{..} = WithMetadata (f wmValue) (g wmMetadata)
 
 $(deriveSafeCopy 0 'base ''Mintette)
 $(deriveSafeCopy 0 'base ''Explorer)
