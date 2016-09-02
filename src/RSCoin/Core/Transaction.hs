@@ -29,6 +29,10 @@ import           RSCoin.Core.Primitives (AddrId, Address (..), Coin (..),
 
 -- | Validates that sum of inputs for each color isn't greater than
 -- sum of outputs, and what's left can be painted by grey coins.
+-- Furthermore, the function also checks if the transaction has empty
+-- input and/or output lists, and if any of the coins in either list
+-- has a negative or zero value. If any of this happens, the transaction
+-- will not be validated.
 validateTxPure :: Transaction -> Bool
 validateTxPure Transaction{..} =
     and [ totalInputs >= totalOutputs
@@ -56,6 +60,11 @@ validateTxPure Transaction{..} =
     totalUnpaintedSum = sum $ map getCoin $ M.elems unpainted
     zeroOrNegInputs = filter (<= 0) $ map (getCoin . view _3) txInputs
     zeroOrNegOutputs = filter (<= 0) $ map (getCoin . snd) txOutputs
+
+-- | Removes from input/output lists elements whose coins are either
+-- zero or negative, and if either (or both) the input/output lists
+-- becomes empty, or was so from the start, the function returns
+-- `Nothing`.
 
 canonizeTx :: Transaction -> Maybe Transaction
 canonizeTx Transaction{..} =
