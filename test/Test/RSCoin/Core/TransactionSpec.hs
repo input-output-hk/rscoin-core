@@ -8,13 +8,13 @@ module Test.RSCoin.Core.TransactionSpec
        ( spec,
        ) where
 
-import           Control.Lens          (view, _3)
+import           Control.Lens          (view, _2, _3, (&), (%~))
 import           Data.Bifunctor        (first, second)
 import qualified Data.IntMap.Strict    as M (IntMap, elems, findWithDefault,
                                              foldrWithKey, lookup, mapWithKey,
                                              null, (!))
 import           Data.List             (genericLength, sort)
-import           Data.Maybe            (isJust)
+import           Data.Maybe            (fromJust, isJust)
 import           Test.Hspec            (Spec, describe)
 import           Test.Hspec.QuickCheck (prop)
 import           Test.QuickCheck       (Arbitrary (arbitrary), Gen,
@@ -54,7 +54,7 @@ instance Arbitrary TransactionValid where
                    arbitrary <*>
                    genCoinInRange getColor 0 (C.getAmount getCoin)
            unpaintedOutputsMap <- mapM genOutput coins
-           padCols <- arbitrary :: Gen [C.Color]
+           padCols :: [C.Color] <- getNonEmpty <$> arbitrary
            let l
                    :: Num a
                    => a
@@ -85,23 +85,30 @@ instance Arbitrary TransactionValid where
 spec :: Spec
 spec =
     describe "Transaction" $ do
-        describe "validateSum" $ do
-            prop description_validateSumForValid validateSumCorrectForValid
+        describe "validateTxPure" $ do
+            prop description_validAfterCanonize validAfterCanonize
+            prop description_invalidateBadTx invalidateBadTx
+            prop description_validateTxPureForValid validateTxCorrectForValid
             prop description_validateInputMoreOutput validateInputMoreThanOutput
-            prop description_validateSumInputOutputCol validateOnlyInputColorsInOutput
+            prop description_validateTxPureInputOutputCol validateOnlyInputColorsInOutput
         describe "validateSignature" $
             prop description_validateSignature validateSig
         describe "chooseAddresses" $ do
             prop description_chooseAddressesJustWhenPossible chooseAddressesJustWhenPossible
             prop description_chooseSmallerAddressesFirst chooseSmallerAddressesFirst
     where
-      description_validateSumForValid =
+      description_validAfterCanonize =
+        "a valid transaction remains valid after being canonized"
+      description_invalidateBadTx =
+        "a transaction with empty inputs and/or outputs, or coins with "++
+        "negative amounts is invalid"
+      description_validateTxPureForValid =
         "returns true if total amount of grey coins in inputs is not less than " ++
         "amount of grey coins in outputs plus amount of coins spent to color coins"
       description_validateInputMoreOutput =
         "returns true if the amount of input coins is greater than the amount of " ++
         "output coins, false if it is smaller"
-      description_validateSumInputOutputCol =
+      description_validateTxPureInputOutputCol =
         "returns false if non-grey coins are repainted in the transaction."
       description_validateSignature =
         "returns true if the signature is issued by the public key associated " ++
@@ -112,8 +119,23 @@ spec =
       description_chooseSmallerAddressesFirst =
         "uses addrids with smaller amount of money first"
 
-validateSumCorrectForValid :: TransactionValid -> Bool
-validateSumCorrectForValid = C.validateSum . getTr
+validAfterCanonize :: TransactionValid -> Bool
+validAfterCanonize (getTr -> tx) =
+    (not $ C.validateTxPure tx) || (C.validateTxPure $ fromJust $ C.canonizeTx tx)
+
+invalidateBadTx :: TransactionValid -> Bool
+invalidateBadTx (getTr -> C.Transaction{..}) =
+    and $ map (not . C.validateTxPure . uncurry C.Transaction) $
+    [ (inputs, outputs) | inputs <- [[], negInputs]
+                        , outputs <- [[], negOutputs, txOutputs]] ++
+    [ (inputs, outputs) | inputs <- [[], negInputs, txInputs]
+                        , outputs <- [[], negOutputs]]
+  where
+    negInputs = map (& _3 %~ negate) txInputs
+    negOutputs = map (& _2 %~ negate) txOutputs
+
+validateTxCorrectForValid :: TransactionValid -> Bool
+validateTxCorrectForValid = C.validateTxPure . getTr
 
 -- | This property does the following:
 -- * generate list of addrids which will serve as input;
@@ -128,10 +150,10 @@ validateInputMoreThanOutput (getNonEmpty -> inputs) adr =
     let outputs = map ((adr, ) . view _3) inputs
         helper [] = ([], [])
         helper ((a,C.Coin col cn):xs) =
-            ((a, C.Coin col (cn + 1)) : xs, (a, C.Coin col (cn - 1)) : xs)
+            ((a, C.Coin col (cn + 1)) : xs, (a, C.Coin col (cn / 2)) : xs)
         (plus1,minus1) = helper outputs
         (tx1,tx2) = (C.Transaction inputs plus1, C.Transaction inputs minus1)
-    in C.validateSum tx2 && (not $ C.validateSum tx1)
+    in C.validateTxPure tx2 && (not $ C.validateTxPure tx1)
 
 -- | This property does the following:
 -- * generate single addrid (tid, index, Coin cl c) as input and dummy address;
@@ -145,7 +167,7 @@ validateOnlyInputColorsInOutput (t, i, C.Coin col c) adr =
     let nonZero = abs col + 1
         txo = [(adr, C.Coin nonZero (c / 2)),(adr, C.Coin (nonZero + 1) (c / 2))]
     in (c == 0) ||
-       (not $ C.validateSum $ C.Transaction [(t,i,C.Coin nonZero c)] txo)
+       (not $ C.validateTxPure $ C.Transaction [(t,i,C.Coin nonZero c)] txo)
 
 validateSig :: C.SecretKey -> C.Transaction -> Bool
 validateSig sk tr = C.validateSignature (C.sign sk tr) (C.Address $ C.derivePublicKey sk) tr

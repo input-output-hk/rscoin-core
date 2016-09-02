@@ -5,7 +5,7 @@ import           Data.Binary               (Binary)
 import           Data.List                 ()
 import qualified Data.Map                  as M
 import           Test.QuickCheck           (Arbitrary (arbitrary), Gen,
-                                            NonNegative (..), choose, oneof)
+                                            Positive (..), choose, oneof)
 import           Test.QuickCheck.Instances ()
 
 import qualified RSCoin.Core.Crypto        as C
@@ -23,7 +23,7 @@ instance Arbitrary C.Color where
 instance Arbitrary C.Coin where
     arbitrary = do
         col <- arbitrary
-        NonNegative coin <- arbitrary
+        coin <- getPositive <$> arbitrary
         return $ C.Coin col coin
 
 instance Arbitrary C.Mintette where

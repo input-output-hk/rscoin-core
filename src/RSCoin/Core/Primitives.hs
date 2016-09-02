@@ -76,6 +76,7 @@ instance Num Coin where
       | col == col' = Coin col (c - c')
       | otherwise = reportError "subtraction" c1 c2
     abs (Coin a b) = Coin a (abs b)
+    negate (Coin c cn) = Coin c (negate cn)
     signum (Coin col c) = Coin col (signum c)
     fromInteger c = Coin grey (fromInteger c)
 
