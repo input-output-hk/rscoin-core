@@ -3,9 +3,10 @@
 module RSCoin.Core.MessagePack  () where
 
 import           Control.Lens               (view, _3)
-import           Data.Bifunctor             (bimap, first)
+import           Data.Bifunctor             (bimap)
 import           Data.Binary                (decodeOrFail, encode)
 import qualified Data.ByteString.Lazy       as BSL
+import qualified Data.Fixed                 as Fixed
 import           Data.Hashable              (Hashable)
 import qualified Data.HashSet               as HS
 import           Data.Int                   (Int64)
@@ -13,7 +14,7 @@ import           Data.MessagePack           (MessagePack (fromObject, toObject),
                                              pack, unpack)
 import           Data.Ratio                 (Ratio, denominator, numerator, (%))
 import qualified Data.Set                   as S
-import           Data.Time.Clock.POSIX      (POSIXTime)
+import           Data.Time.Clock            (NominalDiffTime)
 import           Data.Tuple.Curry           (uncurryN)
 
 import           RSCoin.Core.Crypto         ()
@@ -39,6 +40,14 @@ uncurry4 = uncurryN
 
 uncurry5 :: (a -> b -> c -> d -> e -> f) -> (a, b, c, d, e) -> f
 uncurry5 = uncurryN
+
+instance MessagePack (Fixed.Fixed a) where
+    toObject (Fixed.MkFixed a) = toObject a
+    fromObject = fmap Fixed.MkFixed . fromObject
+
+instance MessagePack NominalDiffTime where
+    toObject = toObject . (realToFrac :: NominalDiffTime -> Fixed.Pico)
+    fromObject = fmap (realToFrac :: Fixed.Pico -> NominalDiffTime) . fromObject
 
 -- msgpack library we use is awful :(
 -- RЕАЛLY IT"S S0 AWFUЛ
@@ -200,13 +209,8 @@ instance MessagePack C.BankLocalControlRequest where
             _ -> Nothing
 
 instance MessagePack C.HBlockMetadata where
-    toObject C.HBlockMetadata {..} =
-        toObject ((realToFrac hbmTimestamp) :: Double, hbmEmission)
-    fromObject =
-        fmap
-            (uncurry2 C.HBlockMetadata .
-             first (realToFrac :: Double -> POSIXTime)) .
-        fromObject
+    toObject C.HBlockMetadata {..} = toObject (hbmTimestamp, hbmEmission)
+    fromObject = fmap (uncurry2 C.HBlockMetadata) . fromObject
 
 instance (MessagePack a, MessagePack b) =>
          MessagePack (C.WithMetadata a b) where
