@@ -54,13 +54,13 @@ validateTxPure Transaction{..} =
            else M.insert color (outputOfThisColor - inputOfThisColor) unp
     unpainted = foldr' foldfoo0 M.empty txColors
     totalUnpaintedSum = sum $ map getCoin $ M.elems unpainted
-    zeroOrNegInputs = filter (> 0) $ map (getCoin . view _3) txInputs
-    zeroOrNegOutputs = filter (> 0) $ map (getCoin . snd) txOutputs
+    zeroOrNegInputs = filter (<= 0) $ map (getCoin . view _3) txInputs
+    zeroOrNegOutputs = filter (<= 0) $ map (getCoin . snd) txOutputs
 
 canonizeTx :: Transaction -> Maybe Transaction
 canonizeTx Transaction{..} =
     case (txInputs', txOutputs') of
-             (_ : _, _ : _) -> Just $ Transaction txInputs txOutputs
+             (_ : _, _ : _) -> Just $ Transaction txInputs' txOutputs'
              (_, _)         -> Nothing
   where
     txInputs' = filter ((> 0) . getCoin . view _3) txInputs

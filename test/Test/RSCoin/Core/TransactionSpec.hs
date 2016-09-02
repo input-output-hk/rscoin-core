@@ -126,8 +126,10 @@ validAfterCanonize (getTr -> tx) =
 invalidateBadTx :: TransactionValid -> Bool
 invalidateBadTx (getTr -> C.Transaction{..}) =
     and $ map (not . C.validateTxPure . uncurry C.Transaction) $
+    [ (inputs, outputs) | inputs <- [[], negInputs]
+                        , outputs <- [[], negOutputs, txOutputs]] ++
     [ (inputs, outputs) | inputs <- [[], negInputs, txInputs]
-                        , outputs <- [[], negOutputs, txOutputs]]
+                        , outputs <- [[], negOutputs]]
   where
     negInputs = map (& _3 %~ negate) txInputs
     negOutputs = map (& _2 %~ negate) txOutputs
@@ -148,7 +150,7 @@ validateInputMoreThanOutput (getNonEmpty -> inputs) adr =
     let outputs = map ((adr, ) . view _3) inputs
         helper [] = ([], [])
         helper ((a,C.Coin col cn):xs) =
-            ((a, C.Coin col (cn + 1)) : xs, (a, C.Coin col (cn - 1)) : xs)
+            ((a, C.Coin col (cn + 1)) : xs, (a, C.Coin col (cn / 2)) : xs)
         (plus1,minus1) = helper outputs
         (tx1,tx2) = (C.Transaction inputs plus1, C.Transaction inputs minus1)
     in C.validateTxPure tx2 && (not $ C.validateTxPure tx1)

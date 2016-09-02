@@ -10,7 +10,7 @@ import qualified Data.HashSet           as HS hiding (HashSet)
 import           Data.List              ()
 import qualified Data.Map               as M
 import           Test.QuickCheck        (Arbitrary (arbitrary), Gen,
-                                         NonNegative (..), choose, oneof)
+                                         Positive (..), choose, oneof)
 
 import qualified RSCoin.Core.Crypto     as C
 import qualified RSCoin.Core.Primitives as C
@@ -33,7 +33,7 @@ instance Arbitrary C.Color where
 instance Arbitrary C.Coin where
     arbitrary = do
         col <- arbitrary
-        NonNegative coin <- arbitrary
+        coin <- getPositive <$> arbitrary
         return $ C.Coin col coin
 
 instance Arbitrary C.Mintette where
