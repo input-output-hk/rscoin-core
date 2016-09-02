@@ -1,28 +1,18 @@
 -- | Arbitrary instances for core datatypes
 module RSCoin.Core.Arbitrary () where
 
-import           Data.Binary            (Binary)
-import           Data.Hashable          (Hashable)
-import           Data.HashMap.Strict    (HashMap)
-import qualified Data.HashMap.Strict    as HM hiding (HashMap)
-import           Data.HashSet           (HashSet)
-import qualified Data.HashSet           as HS hiding (HashSet)
-import           Data.List              ()
-import qualified Data.Map               as M
-import           Test.QuickCheck        (Arbitrary (arbitrary), Gen,
-                                         NonNegative (..), choose, oneof)
+import           Data.Binary               (Binary)
+import           Data.List                 ()
+import qualified Data.Map                  as M
+import           Test.QuickCheck           (Arbitrary (arbitrary), Gen,
+                                            NonNegative (..), choose, oneof)
+import           Test.QuickCheck.Instances ()
 
-import qualified RSCoin.Core.Crypto     as C
-import qualified RSCoin.Core.Primitives as C
-import qualified RSCoin.Core.Protocol   as C
-import qualified RSCoin.Core.Strategy   as C
-import qualified RSCoin.Core.Types      as C
-
-instance (Eq k, Hashable k, Arbitrary k, Arbitrary v) => Arbitrary (HashMap k v) where
-    arbitrary = HM.fromList <$> arbitrary
-
-instance (Eq e, Hashable e, Arbitrary e) => Arbitrary (HashSet e) where
-    arbitrary = HS.fromList <$> arbitrary
+import qualified RSCoin.Core.Crypto        as C
+import qualified RSCoin.Core.Primitives    as C
+import qualified RSCoin.Core.Protocol      as C
+import qualified RSCoin.Core.Strategy      as C
+import qualified RSCoin.Core.Types         as C
 
 instance Arbitrary C.CoinAmount where
     arbitrary = C.CoinAmount . abs <$> arbitrary
@@ -140,7 +130,7 @@ instance Arbitrary C.BankLocalControlRequest where
                       ]
 
 instance Arbitrary C.HBlockMetadata where
-    arbitrary = C.HBlockMetadata <$> pure 42 <*> arbitrary
+    arbitrary = C.HBlockMetadata <$> arbitrary <*> arbitrary
 
 instance (Arbitrary a, Arbitrary b) =>
          Arbitrary (C.WithMetadata a b) where

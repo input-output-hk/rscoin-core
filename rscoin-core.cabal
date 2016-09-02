@@ -84,6 +84,7 @@ library
                      , msgpack-rpc >= 1.0.0
                      , pqueue
                      , QuickCheck >= 2.8.1
+                     , quickcheck-instances
                      , random
                      , safe
                      , safecopy
