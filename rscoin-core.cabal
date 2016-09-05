@@ -42,15 +42,21 @@ library
                      , RSCoin.Core.Strategy
                      , RSCoin.Core.Transaction
                      , RSCoin.Core.Types
+                     , RSCoin.Core.WorkMode
 
-                     , RSCoin.Timed
-                     , RSCoin.Timed.Arbitrary
-                     , RSCoin.Timed.MonadTimed
-                     , RSCoin.Timed.MonadRpc
-                     , RSCoin.Timed.PureRpc
-                     , RSCoin.Timed.Timed
-                     , RSCoin.Timed.TimedIO
-                     , RSCoin.Timed.Misc
+                     , RSCoin.Util.Logging
+                     , RSCoin.Util.Rpc
+                     , RSCoin.Util.Timed
+  other-modules:       RSCoin.Util.Rpc.Arbitrary
+                     , RSCoin.Util.Rpc.MonadRpc
+                     , RSCoin.Util.Rpc.MsgPackRpc
+                     , RSCoin.Util.Rpc.PureRpc
+
+                     , RSCoin.Util.Timed.Arbitrary
+                     , RSCoin.Util.Timed.Misc
+                     , RSCoin.Util.Timed.MonadTimed
+                     , RSCoin.Util.Timed.TimedIO
+                     , RSCoin.Util.Timed.TimedT
   build-depends:       aeson
                      , ansi-terminal
                      , base >=4.8 && <4.9
@@ -123,9 +129,11 @@ test-suite rscoin-test
                      , Test.RSCoin.Core.OwnersSpec
                      , Test.RSCoin.Core.ShowReadSpec
                      , Test.RSCoin.Core.TransactionSpec
-                     , Test.RSCoin.Timed.ExceptionSpec
-                     , Test.RSCoin.Timed.MonadRpcSpec
-                     , Test.RSCoin.Timed.MonadTimedSpec
+
+                     , Test.RSCoin.Util.Rpc.MonadRpcSpec
+                     , Test.RSCoin.Util.Timed.ExceptionSpec
+                     , Test.RSCoin.Util.Timed.MonadTimedSpec
+
                      , Spec
   type:                exitcode-stdio-1.0
   build-depends:       base >=4.8 && <4.9

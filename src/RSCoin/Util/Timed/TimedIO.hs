@@ -5,25 +5,25 @@
 
 -- | IO-based implementation of MonadTimed type class.
 
-module RSCoin.Timed.TimedIO
+module RSCoin.Util.Timed.TimedIO
        ( TimedIO
        , runTimedIO
        ) where
 
-import qualified Control.Concurrent          as C
-import           Control.Monad.Base          (MonadBase)
-import           Control.Monad.Catch         (MonadCatch, MonadMask, MonadThrow,
-                                              throwM)
-import           Control.Monad.Reader        (ReaderT (..), ask, runReaderT)
-import           Control.Monad.Trans         (MonadIO, lift, liftIO)
-import           Control.Monad.Trans.Control (MonadBaseControl, StM,
-                                              liftBaseWith, restoreM)
-import           Data.Time.Clock.POSIX       (getPOSIXTime)
-import qualified System.Timeout              as T
+import qualified Control.Concurrent           as C
+import           Control.Monad.Base           (MonadBase)
+import           Control.Monad.Catch          (MonadCatch, MonadMask,
+                                               MonadThrow, throwM)
+import           Control.Monad.Reader         (ReaderT (..), ask, runReaderT)
+import           Control.Monad.Trans          (MonadIO, lift, liftIO)
+import           Control.Monad.Trans.Control  (MonadBaseControl, StM,
+                                               liftBaseWith, restoreM)
+import           Data.Time.Clock.POSIX        (getPOSIXTime)
+import qualified System.Timeout               as T
 
-import           RSCoin.Timed.MonadTimed     (Microsecond, MonadTimed (..),
-                                              MonadTimedError (MTTimeoutError),
-                                              ThreadId (IOThreadId))
+import           RSCoin.Util.Timed.MonadTimed (Microsecond, MonadTimed (..),
+                                               MonadTimedError (MTTimeoutError),
+                                               ThreadId (IOThreadId))
 
 newtype TimedIO a = TimedIO
     { getTimedIO :: ReaderT Microsecond IO a

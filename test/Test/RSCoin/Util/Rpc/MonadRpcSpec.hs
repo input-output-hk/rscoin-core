@@ -2,7 +2,7 @@
 
 -- | RSCoin.Test.MonadRpc specification
 
-module Test.RSCoin.Timed.MonadRpcSpec
+module Test.RSCoin.Util.Rpc.MonadRpcSpec
        ( spec
        ) where
 
@@ -14,23 +14,24 @@ import           Test.QuickCheck            (Property, Testable (property),
                                              ioProperty)
 import           Test.QuickCheck.Monadic    (PropertyM, assert, monadic, run)
 
-import           RSCoin.Core                (testingLoggerName)
-import           RSCoin.Core.NodeConfig     (Host, NetworkAddress, Port)
-import           RSCoin.Timed               (ContextArgument (CADefault),
-                                             WorkMode, for, fork, fork_,
-                                             killThread, ms,
-                                             runRealModeUntrusted, wait)
-import           RSCoin.Timed.Arbitrary     ()
-import           RSCoin.Timed.MonadRpc      (Client (..), MonadRpc (..),
-                                             MsgPackRpc (..), call, method)
-import           RSCoin.Timed.PureRpc       (PureRpc, runPureRpc)
+import           RSCoin.Util.Logging        (WithNamedLogger (getLoggerName))
+import           RSCoin.Util.Rpc            (Client (..), Host, MonadRpc (..),
+                                             MsgPackRpc (..), NetworkAddress,
+                                             Port, PureRpc, call, method,
+                                             runMsgPackRpc, runPureRpc)
+import           RSCoin.Util.Timed          (for, fork, fork_, killThread, ms,
+                                             runTimedIO, wait)
+
+-- TODO: copy-pasted :(
+instance WithNamedLogger IO where
+    getLoggerName = pure "MonadRpcSpec tests"
 
 spec :: Spec
 spec =
     describe "MonadRpc" $ do
         describe "MsgPackRpc" $
             describe "msgpack-rpc based implementation of RPC layer" $ do
-                runIO $ runRealModeUntrusted testingLoggerName CADefault (fork_ server)
+                runIO $ runTimedIO $ runMsgPackRpc (fork_ server)
                 prop "client should be able to execute server method" $
                     runMsgPackRpcProp serverMethodShouldExecuteSimpleSpec
         describe "PureRpc" $
@@ -45,9 +46,7 @@ assertPure :: Bool -> PureRpcProp ()
 assertPure b = modify (b &&)
 
 runMsgPackRpcProp :: MsgPackRpcProp () -> Property
-runMsgPackRpcProp =
-    monadic $
-    ioProperty . runRealModeUntrusted testingLoggerName CADefault
+runMsgPackRpcProp = monadic $ ioProperty . runTimedIO . runMsgPackRpc
 
 runPureRpcProp :: PureRpcProp () -> Property
 runPureRpcProp test =
@@ -67,9 +66,7 @@ host = "127.0.0.1"
 addr :: NetworkAddress
 addr = (host, port)
 
-serverMethodShouldExecuteSimpleSpec
-    :: WorkMode m
-    => PropertyM m ()
+serverMethodShouldExecuteSimpleSpec :: PropertyM MsgPackRpc ()
 serverMethodShouldExecuteSimpleSpec = client
 
 serverMethodShouldExecuteSimplePureSpec
@@ -99,7 +96,7 @@ server = do
 restrict :: Monad m => ServerT m a -> m ()
 restrict _  =  return ()
 
-client :: WorkMode m => PropertyM m ()
+client :: PropertyM MsgPackRpc ()
 client = do
     run $ wait $ for 50 ms
     r1 <- run $ execClient addr $ addC 123 456

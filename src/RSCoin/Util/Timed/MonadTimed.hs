@@ -5,8 +5,9 @@
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE ViewPatterns          #-}
 
--- | This module contains time management monad and it's implementation for IO.
-module RSCoin.Timed.MonadTimed
+-- | This module defines time management monad and helpers.
+
+module RSCoin.Util.Timed.MonadTimed
     ( fork, fork_, wait, localTime, schedule, invoke, timeout
     , killThread, myThreadId
     , minute , sec , ms , mcs
@@ -45,9 +46,6 @@ import           Data.Time.Units         (Microsecond, Millisecond, Minute,
                                           Second, TimeUnit (..), convertUnit)
 import           Data.Typeable           (Typeable)
 
-import           RSCoin.Core.Error       (rscExceptionFromException,
-                                          rscExceptionToException)
-
 -- | Defines some time point (relative to current time point)
 --   basing on current time point
 type RelativeToNow = Microsecond -> Microsecond
@@ -63,9 +61,7 @@ data MonadTimedError
     = MTTimeoutError Text
     deriving (Show, Typeable)
 
-instance Exception MonadTimedError where
-    toException = rscExceptionToException
-    fromException = rscExceptionFromException
+instance Exception MonadTimedError
 
 instance Buildable MonadTimedError where
     build (MTTimeoutError t) = "timeout error: " <> build t

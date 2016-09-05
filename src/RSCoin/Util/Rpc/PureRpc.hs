@@ -1,42 +1,44 @@
-{-# LANGUAGE ExplicitForAll             #-}
-{-# LANGUAGE FlexibleInstances          #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE MultiParamTypeClasses      #-}
-{-# LANGUAGE TemplateHaskell            #-}
-{-# LANGUAGE TypeFamilies               #-}
-{-# LANGUAGE UndecidableInstances       #-}
+{-# LANGUAGE ExplicitForAll        #-}
+{-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE StandaloneDeriving    #-}
+{-# LANGUAGE TemplateHaskell       #-}
+{-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE UndecidableInstances  #-}
 
-module RSCoin.Timed.PureRpc
-    ( PureRpc
-    , runPureRpc
-    , runPureRpc_
-    , Delays(..)
-    ) where
+module RSCoin.Util.Rpc.PureRpc
+       ( PureRpc
+       , runPureRpc
+       , runPureRpc_
+       , Delays (..)
+       ) where
 
-import           Control.Lens            (makeLenses, use, view, (%%=), (%=))
-import           Control.Monad           (forM_)
-import           Control.Monad.Catch     (MonadCatch, MonadMask, MonadThrow,
-                                          throwM)
-import           Control.Monad.Random    (Rand, runRand)
-import           Control.Monad.State     (MonadState (get, put, state), StateT,
-                                          evalStateT)
-import           Control.Monad.Trans     (MonadIO, MonadTrans, lift)
-import           Data.Default            (Default, def)
-import           Data.Map                as Map
-import           System.Random           (StdGen)
+import           Control.Lens             (makeLenses, use, (%%=), (%=))
+import           Control.Monad            (forM_)
+import           Control.Monad.Catch      (MonadCatch, MonadMask, MonadThrow,
+                                           throwM)
+import           Control.Monad.Random     (Rand, runRand)
+import           Control.Monad.State      (MonadState (get, put, state), StateT,
+                                           evalStateT)
+import           Control.Monad.Trans      (MonadIO, MonadTrans, lift)
+import           Data.Default             (Default, def)
+import           Data.Map                 as Map
+import           System.Random            (StdGen)
 
-import           Data.MessagePack        (Object)
-import           Data.MessagePack.Object (MessagePack, fromObject, toObject)
+import           Data.MessagePack         (Object)
+import           Data.MessagePack.Object  (MessagePack, fromObject, toObject)
 
-import           RSCoin.Core.Constants   (localhost)
-import           RSCoin.Core.Logging     (WithNamedLogger (..))
-import           RSCoin.Core.NodeConfig  (Host, NetworkAddress, ctxLoggerName,
-                                          defaultNodeContext)
-import           RSCoin.Timed.MonadRpc   (Client (..), Method (..), MonadRpc (execClient, getNodeContext, serve),
-                                          RpcError (..), methodBody, methodName)
-import           RSCoin.Timed.MonadTimed (Microsecond, MonadTimed, for,
-                                          localTime, mcs, minute, wait)
-import           RSCoin.Timed.Timed      (TimedT, evalTimedT, runTimedT)
+import           RSCoin.Util.Logging      (WithNamedLogger)
+import           RSCoin.Util.Rpc.MonadRpc (Client (..), Host, Method (..),
+                                           MonadRpc (execClient, serve),
+                                           NetworkAddress, RpcError (..),
+                                           methodBody, methodName)
+import           RSCoin.Util.Timed        (Microsecond, MonadTimed, TimedT,
+                                           evalTimedT, for, localTime, mcs,
+                                           minute, runTimedT, wait)
+
+localhost :: Host
+localhost = "127.0.0.1"
 
 -- | List of known issues:
 --     -) Method, once being declared in net, can't be removed
@@ -70,6 +72,10 @@ newtype Delays = Delays
       --   Or maybe someone has overall better solution in mind
     }
 
+-- This is needed for QC
+instance Show Delays where
+    show _ = "Delays"
+
 instance Default Delays where
     -- | Descirbes reliable network
     def = Delays . const . const . return . Just $ 0
@@ -89,8 +95,11 @@ $(makeLenses ''NetInfo)
 -- | Pure implementation of RPC
 newtype PureRpc m a = PureRpc
     { unwrapPureRpc :: StateT Host (TimedT (StateT (NetInfo (PureRpc m)) m)) a
-    } deriving (Functor, Applicative, Monad, MonadIO, MonadTimed
-               , MonadThrow, MonadCatch, MonadMask)
+    } deriving (Functor, Applicative, Monad, MonadIO, MonadThrow, MonadCatch, MonadMask)
+
+deriving instance
+         (MonadCatch m, MonadThrow m, WithNamedLogger m, MonadIO m) =>
+         MonadTimed (PureRpc m)
 
 instance MonadTrans PureRpc where
     lift = PureRpc . lift . lift . lift
@@ -136,35 +145,34 @@ request (Client name args) (listeners', addr) =
                 Just r  -> return r
 
 
-instance (MonadIO m, MonadThrow m, MonadCatch m) => MonadRpc (PureRpc m) where
-    execClient addr cli = PureRpc $ do
-        curHost <- get
-        unwrapPureRpc $ waitDelay Request
-
-        ls <- lift . lift $ use listeners
-        put $ fst addr
-        answer <- unwrapPureRpc $ request cli (ls, addr)
-        unwrapPureRpc $ waitDelay Response
-
-        put curHost
-        return answer
-
-    serve port methods = PureRpc $ do
-        host <- get
-        lift $ lift $ forM_ methods $ \Method{..} ->
-            listeners %= Map.insert ((host, port), methodName) methodBody
-        sleepForever
+instance (WithNamedLogger m, MonadIO m, MonadThrow m, MonadCatch m) =>
+         MonadRpc (PureRpc m) where
+    execClient addr cli =
+        PureRpc $
+        do curHost <- get
+           unwrapPureRpc $ waitDelay Request
+           ls <- lift . lift $ use listeners
+           put $ fst addr
+           answer <- unwrapPureRpc $ request cli (ls, addr)
+           unwrapPureRpc $ waitDelay Response
+           put curHost
+           return answer
+    serve port methods =
+        PureRpc $
+        do host <- get
+           lift $
+               lift $
+               forM_ methods $
+               \Method {..} ->
+                    listeners %=
+                    Map.insert ((host, port), methodName) methodBody
+           sleepForever
       where
         sleepForever = wait (for 100500 minute) >> sleepForever
 
-    -- @TODO not sure it's ok when it comes to notaries
-    getNodeContext = pure $ defaultNodeContext
-
-instance (MonadIO m, MonadThrow m, MonadCatch m) =>
-         WithNamedLogger (PureRpc m) where
-    getLoggerName = view ctxLoggerName <$> getNodeContext
-
-waitDelay :: (MonadThrow m, MonadIO m, MonadCatch m) => RpcStage -> PureRpc m ()
+waitDelay
+    :: (WithNamedLogger m, MonadThrow m, MonadIO m, MonadCatch m)
+    => RpcStage -> PureRpc m ()
 waitDelay stage =
     PureRpc $
     do delays' <- lift . lift $ use delays

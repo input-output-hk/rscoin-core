@@ -7,49 +7,54 @@
 {-# LANGUAGE UndecidableInstances      #-}
 {-# OPTIONS_GHC -fno-cse #-}
 
--- | This module contains pure implementation of MonadTimed.
+-- | This module contains TimedT transformer, which is pure implementation
+--   of MonadTimed.
 
-module RSCoin.Timed.Timed
+module RSCoin.Util.Timed.TimedT
        ( TimedT
        , runTimedT
        , evalTimedT
        , ThreadId
        ) where
 
-import           Control.Exception.Base  (AsyncException (ThreadKilled),
-                                          Exception (fromException),
-                                          SomeException (..))
+import           Control.Exception.Base       (AsyncException (ThreadKilled),
+                                               Exception (fromException),
+                                               SomeException (..))
 
-import           Control.Lens            (makeLenses, to, use, view, (%=), (%~),
-                                          (&), (+=), (.=), (<&>), (^.))
-import           Control.Monad           (unless, void)
-import           Control.Monad.Catch     (Handler (..), MonadCatch, MonadMask,
-                                          MonadThrow, catch, catchAll, catches,
-                                          mask, throwM, try,
-                                          uninterruptibleMask)
-import           Control.Monad.Cont      (ContT (..), runContT)
-import           Control.Monad.Loops     (whileM_)
-import           Control.Monad.Reader    (ReaderT (..), ask, runReaderT)
-import           Control.Monad.State     (MonadState (get, put, state), StateT,
-                                          evalStateT)
-import           Control.Monad.Trans     (MonadIO, MonadTrans, lift, liftIO)
-import           Data.Function           (on)
-import           Data.IORef              (newIORef, readIORef, writeIORef)
-import           Data.List               (foldl')
-import           Data.Maybe              (fromJust)
-import           Data.Ord                (comparing)
-import           Formatting              (sformat, shown, (%))
+import           Control.Lens                 (makeLenses, to, use, view, (%=),
+                                               (%~), (&), (+=), (.=), (<&>),
+                                               (^.))
+import           Control.Monad                (unless, void)
+import           Control.Monad.Catch          (Handler (..), MonadCatch,
+                                               MonadMask, MonadThrow, catch,
+                                               catchAll, catches, mask, throwM,
+                                               try, uninterruptibleMask)
+import           Control.Monad.Cont           (ContT (..), runContT)
+import           Control.Monad.Loops          (whileM_)
+import           Control.Monad.Reader         (ReaderT (..), ask, runReaderT)
+import           Control.Monad.State          (MonadState (get, put, state),
+                                               StateT, evalStateT)
+import           Control.Monad.Trans          (MonadIO, MonadTrans, lift,
+                                               liftIO)
+import           Data.Function                (on)
+import           Data.IORef                   (newIORef, readIORef, writeIORef)
+import           Data.List                    (foldl')
+import           Data.Maybe                   (fromJust)
+import           Data.Ord                     (comparing)
+import           Formatting                   (sformat, shown, (%))
 
-import qualified Data.PQueue.Min         as PQ
-import qualified Data.Set                as S
+import qualified Data.PQueue.Min              as PQ
+import qualified Data.Set                     as S
 
-import           RSCoin.Core.Logging     (WithNamedLogger (..), logDebug,
-                                          logWarning)
-import           RSCoin.Timed.MonadTimed (Microsecond, Millisecond, MonadTimed,
-                                          MonadTimedError (MTTimeoutError),
-                                          ThreadId (PureThreadId), for, fork,
-                                          killThread, localTime, localTime, ms,
-                                          myThreadId, timeout, wait)
+import           RSCoin.Util.Logging          (WithNamedLogger (..), logDebug,
+                                               logWarning)
+import           RSCoin.Util.Timed.MonadTimed (Microsecond, Millisecond,
+                                               MonadTimed,
+                                               MonadTimedError (MTTimeoutError),
+                                               ThreadId (PureThreadId), for,
+                                               fork, killThread, localTime,
+                                               localTime, ms, myThreadId,
+                                               timeout, wait)
 
 type Timestamp = Microsecond
 
@@ -112,11 +117,11 @@ newtype Core m a = Core
     } deriving (Functor, Applicative, Monad, MonadIO, MonadThrow,
                MonadCatch, MonadMask)
 
-instance MonadIO m => WithNamedLogger (Core m) where
-    getLoggerName = liftIO $ getLoggerName
-
 instance MonadTrans Core where
     lift = Core . lift
+
+instance (Monad m, WithNamedLogger m) => WithNamedLogger (Core m) where
+    getLoggerName = lift getLoggerName
 
 instance MonadState s m => MonadState s (Core m) where
     get = lift get
@@ -275,31 +280,35 @@ evalTimedT timed = do
 isThreadKilled :: SomeException -> Bool
 isThreadKilled = maybe False (== ThreadKilled) . fromException
 
-threadKilledNotifier :: (MonadIO m, WithNamedLogger m) => SomeException -> m ()
+threadKilledNotifier
+    :: (MonadIO m, WithNamedLogger m)
+    => SomeException -> m ()
 threadKilledNotifier e
-  | isThreadKilled e = logDebug msg
-  | otherwise = logWarning msg
+    | isThreadKilled e = logDebug msg
+    | otherwise = logWarning msg
   where
     msg = sformat ("Thread killed by exception: " % shown) e
 
-instance (MonadIO m, MonadThrow m, MonadCatch m) => MonadTimed (TimedT m) where
+instance (WithNamedLogger m, MonadIO m, MonadThrow m, MonadCatch m) =>
+         MonadTimed (TimedT m) where
     localTime = wrapCore $ Core $ use curTime
     -- | Take note, created thread may be killed by timeout
     --   only when it calls "wait"
-    fork _action = do
-        -- just put new thread to an event queue
+    fork _action
+         -- just put new thread to an event queue
+     = do
         _timestamp <- localTime
         tid <- getNextThreadId
         let _threadCtx =
                 ThreadCtx
                 { _threadId = tid
-                , _handlers = [( Handler threadKilledNotifier
-                               , Handler $ \(ContException e) -> throwM e
-                               )]
+                , _handlers =
+                      [ ( Handler threadKilledNotifier
+                        , Handler $ \(ContException e) -> throwM e)
+                      ]
                 }
-        wrapCore $ Core $ events %= PQ.insert Event { .. }
+        wrapCore $ Core $ events %= PQ.insert Event {..}
         return tid
-
     wait relativeToNow = do
         cur <- localTime
         ctx <- TimedT ask
@@ -311,40 +320,37 @@ instance (MonadIO m, MonadThrow m, MonadCatch m) => MonadTimed (TimedT m) where
                 }
         -- grab our continuation, put it to event queue
         -- and finish execution
-        TimedT $ lift $ ContT $
-                  \c ->
-                    Core $ events %= PQ.insert (event $ c ())
-
+        TimedT $ lift $ ContT $ \c -> Core $ events %= PQ.insert (event $ c ())
     myThreadId = TimedT $ view threadId
-
     killThread tid = wrapCore $ Core $ aliveThreads %= S.delete tid
-
     -- TODO: we should probably implement this similar to
     -- http://haddock.stackage.org/lts-5.8/base-4.8.2.0/src/System-Timeout.html#timeout
     timeout t action' = do
         ref <- liftIO $ newIORef Nothing
         -- fork worker
-        wtid <- fork $ do
-            res <- action'
-            liftIO $ writeIORef ref $ Just res
+        wtid <-
+            fork $
+            do res <- action'
+               liftIO $ writeIORef ref $ Just res
         -- wait and gather results
         waitForRes ref wtid t
-      where waitForRes ref tid tout = do
-                lt <- localTime
-                waitForRes' ref tid $ lt + tout
-            waitForRes' ref tid end = do
-                tNow <- localTime
-                if tNow >= end
-                    then do
-                        killThread tid
-                        res <- liftIO $ readIORef ref
-                        case res of
-                            Nothing -> throwM $ MTTimeoutError "Timeout exceeded"
-                            Just r -> return r
-                    else do
-                        wait $ for delay ms
-                        res <- liftIO $ readIORef ref
-                        case res of
-                            Nothing -> waitForRes' ref tid end
-                            Just r  -> return r
-            delay = 10 :: Millisecond
+      where
+        waitForRes ref tid tout = do
+            lt <- localTime
+            waitForRes' ref tid $ lt + tout
+        waitForRes' ref tid end = do
+            tNow <- localTime
+            if tNow >= end
+                then do
+                    killThread tid
+                    res <- liftIO $ readIORef ref
+                    case res of
+                        Nothing -> throwM $ MTTimeoutError "Timeout exceeded"
+                        Just r  -> return r
+                else do
+                    wait $ for delay ms
+                    res <- liftIO $ readIORef ref
+                    case res of
+                        Nothing -> waitForRes' ref tid end
+                        Just r  -> return r
+        delay = 10 :: Millisecond

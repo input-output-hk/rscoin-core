@@ -1,4 +1,5 @@
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE TemplateHaskell   #-}
 
 -- | This module provides configuration context for running nodes of rscoin.
 
@@ -28,13 +29,24 @@ module RSCoin.Core.NodeConfig
 
           -- * Functions to read context from configuration file
         , readDeployNodeContext
+
+          -- * ContextArgument and related
+        , ContextArgument (..)
+        , mkNodeContext
+
+          -- * Type class
+        , WithNodeContext (..)
         ) where
 
 import           Control.Exception          (Exception, throwIO)
-import           Control.Lens               (Getter, makeLenses, to, _1, _2)
+import           Control.Lens               (Getter, makeLenses, to, (.~), _1,
+                                             _2)
 import           Control.Monad              (when)
+import           Control.Monad.Except       (ExceptT)
+import           Control.Monad.Reader       (ReaderT)
+import           Control.Monad.State        (StateT)
+import           Control.Monad.Trans        (lift)
 
-import           Data.ByteString            (ByteString)
 import qualified Data.Configurator          as Config
 import qualified Data.Configurator.Types    as Config
 import           Data.Maybe                 (fromMaybe, isNothing)
@@ -43,6 +55,8 @@ import qualified Data.Text                  as T
 import           Data.Typeable              (Typeable)
 
 import           Formatting                 (build, sformat, stext, (%))
+
+import           RSCoin.Util.Rpc            (Host, NetworkAddress, Port)
 
 import           RSCoin.Core.Constants      (defaultConfigurationPath,
                                              defaultPort, localhost)
@@ -53,10 +67,6 @@ import           RSCoin.Core.Crypto.Signing (PublicKey, SecretKey,
 import           RSCoin.Core.Logging        (LoggerName, nakedLoggerName)
 import           RSCoin.Core.Primitives     (Address (..))
 
-
-type Port = Int
-type Host = ByteString
-type NetworkAddress = (Host, Port)
 
 data NodeContext = NodeContext
     { _bankAddr      :: NetworkAddress
@@ -160,3 +170,42 @@ readDeployNodeContext Nothing confPath = do
             $ sformat (stext % " is not a valid public key in config file") cfgBankPublicKey
         Just pk ->
             return obtainedContext { _bankPublicKey = pk }
+
+-- | ContextArgument is passed to functions which need NodeContext. It
+-- aggregates variety of ways to pass context.
+data ContextArgument
+    = CAExisting NodeContext     -- ^ Existing NodeContext -- will be used.
+    | CADefaultLocation          -- ^ Context will be read from default location.
+    | CACustomLocation FilePath  -- ^ Context will be read from given location.
+    | CADefault                  -- ^ Default context will be used.
+    deriving (Show)
+
+mkNodeContext :: LoggerName
+              -> Maybe SecretKey
+              -> ContextArgument
+              -> IO NodeContext
+mkNodeContext loggerName sk ca =
+    (ctxLoggerName .~ loggerName $) <$> mkNodeContextDo sk ca
+
+mkNodeContextDo :: Maybe SecretKey -> ContextArgument -> IO NodeContext
+mkNodeContextDo _ (CAExisting ctx) = pure ctx
+mkNodeContextDo bankSecretKey CADefaultLocation =
+    readDeployNodeContext bankSecretKey Nothing
+mkNodeContextDo bankSecretKey (CACustomLocation p) =
+    readDeployNodeContext bankSecretKey (Just p)
+mkNodeContextDo _ CADefault = pure defaultNodeContext
+
+class WithNodeContext m where
+    getNodeContext :: m NodeContext
+
+instance (Monad m, WithNodeContext m) =>
+         WithNodeContext (ReaderT a m) where
+    getNodeContext = lift getNodeContext
+
+instance (Monad m, WithNodeContext m) =>
+         WithNodeContext (StateT a m) where
+    getNodeContext = lift getNodeContext
+
+instance (Monad m, WithNodeContext m) =>
+         WithNodeContext (ExceptT e m) where
+    getNodeContext = lift getNodeContext

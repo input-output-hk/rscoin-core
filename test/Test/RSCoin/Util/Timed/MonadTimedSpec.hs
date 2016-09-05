@@ -7,7 +7,7 @@
 
 -- | RSCoin.Test.MonadTimed specification
 
-module Test.RSCoin.Timed.MonadTimedSpec
+module Test.RSCoin.Util.Timed.MonadTimedSpec
        ( spec
        , timeoutProp -- workaround warning, remove after it's used
        ) where
@@ -32,13 +32,16 @@ import           Test.QuickCheck.Monadic     (PropertyM, assert, monadic,
                                               monitor, run)
 import           Test.QuickCheck.Poly        (A)
 
-import           RSCoin.Timed.Arbitrary      ()
-import           RSCoin.Timed.MonadTimed     (Microsecond, MonadTimed (..),
+import           RSCoin.Util.Logging         (WithNamedLogger (getLoggerName))
+import           RSCoin.Util.Timed           (Microsecond, MonadTimed (..),
                                               MonadTimedError, RelativeToNow,
-                                              after, for, fork_, invoke, mcs,
-                                              now, schedule, sec)
-import           RSCoin.Timed.Timed          (TimedT, runTimedT)
-import           RSCoin.Timed.TimedIO        (TimedIO, runTimedIO)
+                                              TimedIO, TimedT, TimedT, after,
+                                              for, fork_, invoke, mcs, now,
+                                              runTimedIO, runTimedT, schedule,
+                                              sec)
+
+instance WithNamedLogger IO where
+    getLoggerName = pure "dunno"
 
 spec :: Spec
 spec =

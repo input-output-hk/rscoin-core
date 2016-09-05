@@ -62,6 +62,8 @@ import           Serokell.Util.Text         (listBuilderJSON,
                                              listBuilderJSONIndent, mapBuilder,
                                              pairBuilder, show')
 
+import           RSCoin.Util.Timed          (MonadTimed, MonadTimedError (..))
+
 import           RSCoin.Core.Crypto         (PublicKey, Signature, hash)
 import           RSCoin.Core.Error          (rscExceptionFromException,
                                              rscExceptionToException)
@@ -82,8 +84,7 @@ import           RSCoin.Core.Types          (ActionLog, CheckConfirmation,
                                              MintetteId, Mintettes,
                                              NewPeriodData, PeriodId,
                                              PeriodResult, Utxo, WithMetadata)
-import           RSCoin.Timed               (MonadTimed, MonadTimedError (..),
-                                             WorkMode)
+import           RSCoin.Core.WorkMode       (WorkMode)
 
 -- | Errors which may happen during remote call.
 data CommunicationError
