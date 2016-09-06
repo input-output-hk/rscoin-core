@@ -64,7 +64,7 @@ data ThreadCtx c = ThreadCtx
       _threadId :: ThreadId
       -- | Exception handlers stack. First is original handler,
       --   second is for continuation handler
-    , _handlers :: [(Handler c (), Handler c ())]  -- ^ Exception handlers stack
+    , _handlers :: [(Handler c (), Handler c ())]  
     }
 
 $(makeLenses ''ThreadCtx)
@@ -92,7 +92,7 @@ data Scenario m c = Scenario
     , _curTime        :: Microsecond
       -- | set of declared threads.
       --   Implementation notes:
-      --   when thread apperars, its id is added to set
+      --   when thread appears, its id is added to set
       --   when thread is "killThread"ed, its id is removed
       --   when thread finishes it's execution, id remains in set
     , _aliveThreads   :: S.Set ThreadId
@@ -160,9 +160,9 @@ instance (MonadCatch m, MonadIO m) => MonadCatch (TimedT m) where
             -- We can catch only from (m + its continuation).
             -- Thus, we should avoid handling exception from continuation.
             -- It's achieved by handling any exception and rethrowing it
-            -- as ContException.
+            -- wrapped into ContException.
             -- Then, any catch handler should first check for ContException.
-            -- If it's throw, rethrow exception inside ContException,
+            -- If it's thrown, rethrow exception inside ContException,
             -- otherwise handle original exception
             \c ->
                 let safeCont x = c x `catchAll` (throwM . ContException)
@@ -218,22 +218,22 @@ runTimedT timed = launchTimedT $ do
     mainThreadCtx >>= \ctx -> runInSandbox ctx timed
     -- event loop
     whileM_ notDone $ do
-        -- take next event
+        -- take next awaiting thread
         nextEv <- wrapCore . Core $ do
             (ev, evs') <- fromJust . PQ.minView <$> use events
             events .= evs'
             return ev
         wrapCore . Core $ curTime .= nextEv ^. timestamp
 
-
+        -- awake the thread
         let ctx = nextEv ^. threadCtx
             tid = ctx ^. threadId
         keepAlive <- wrapCore $ Core $ use $ aliveThreads . to (S.member tid)
         let -- die if time has come
             maybeDie = unless keepAlive $ throwM ThreadKilled
             act      = maybeDie >> runInSandbox ctx (nextEv ^. action)
-            -- catch with handlers from handlers stack
-            -- catch which is performed in instance MonadCatch is not enought
+            -- catch with handlers from handlers stack.
+            -- catch which is performed in instance MonadCatch is not enought,
             -- cause on "wait" "catch" scope finishes, we need to catch
             -- again here
         wrapCore $ (unwrapCore' ctx act) `catchesSeq` (ctx ^. handlers)
@@ -255,12 +255,12 @@ runTimedT timed = launchTimedT $ do
             }
 
     -- Apply all handlers from stack.
-    -- If handled ContException, ignore second handler from that layer
+    -- In each layer (pair of handlers), ContException should be handled first
     catchesSeq = foldl' $ \act (h, hc) -> act `catches` [hc, h]
 
 getNextThreadId :: Monad m => TimedT m ThreadId
 getNextThreadId = wrapCore . Core $ do
-    tid <- PureThreadId <$> (use threadsCounter)
+    tid <- PureThreadId <$> use threadsCounter
     threadsCounter += 1
     aliveThreads %= S.insert tid
     return tid

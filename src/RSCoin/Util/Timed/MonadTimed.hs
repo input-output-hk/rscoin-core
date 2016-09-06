@@ -68,7 +68,6 @@ instance Buildable MonadTimedError where
 
 -- | Allows time management. Time is specified in microseconds passed
 --   from start point (origin).
---   Second class parameter stands for ThreadId type
 class MonadThrow m => MonadTimed m where
     -- | Acquires time relative to origin point
     localTime :: m Microsecond
