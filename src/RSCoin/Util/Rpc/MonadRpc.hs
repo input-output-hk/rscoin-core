@@ -57,17 +57,6 @@ class MonadThrow r => MonadRpc r where
     execClient :: MessagePack a => NetworkAddress -> Client a -> r a
     serve :: Port -> [Method r] -> r ()
 
--- | Same as MonadRpc, but we can set delays on per call basis.
---   MonadRpc also has specified delays, but only for whole network.
---   Default delay would be thrown away.
---   (another approach: stack this and default delays,
---    makes sense, as in RealRpc we still have default delays, even a little
---    but it can be not convinient in pure implementation)
--- TODO: Do we actually need this?
--- class (MonadRpc r, MonadTimed r) => RpcDelayedMonad r where
---    execClientWithDelay  :: RelativeToNow -> NetworkAddress -> Client a -> r ()
---    serveWithDelay :: RelativeToNow -> Port -> [S.Method r] -> r ()
-
 execClientTimeout
     :: (MonadTimed m, MonadRpc m, MessagePack a, TimeUnit t)
     => t -> NetworkAddress -> Client a -> m a
@@ -116,6 +105,7 @@ instance Monad m => S.MethodType m Object where
     toBody _   _  = error "Too many arguments!"
 
 -- | Helps restrict method type
+-- TODO: example of usage
 serverTypeRestriction0 :: Monad m => m (S.ServerT m a -> S.ServerT m a)
 serverTypeRestriction0 = return id
 
