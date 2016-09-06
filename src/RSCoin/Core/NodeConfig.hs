@@ -56,7 +56,7 @@ import           Data.Typeable              (Typeable)
 
 import           Formatting                 (build, sformat, stext, (%))
 
-import           RSCoin.Util.Rpc            (Host, NetworkAddress, Port)
+import           Control.TimeWarp.Rpc       (Host, NetworkAddress, Port)
 
 import           RSCoin.Core.Constants      (defaultConfigurationPath,
                                              defaultPort, localhost)

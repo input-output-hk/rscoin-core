@@ -35,7 +35,7 @@ import           Data.IORef                 (newIORef, readIORef, writeIORef)
 import           Data.Maybe                 (fromJust)
 import           Data.MessagePack           (MessagePack (..))
 
-import qualified RSCoin.Util.Rpc            as Rpc
+import qualified Control.TimeWarp.Rpc       as Rpc
 
 import           RSCoin.Core.Constants      (rpcTimeout)
 import           RSCoin.Core.MessagePack    ()

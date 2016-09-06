@@ -1,4 +1,4 @@
-{-# LANGUAGE TemplateHaskell    #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 -- | Hash-related functions and types.
 

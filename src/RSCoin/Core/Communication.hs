@@ -62,7 +62,7 @@ import           Serokell.Util.Text         (listBuilderJSON,
                                              listBuilderJSONIndent, mapBuilder,
                                              pairBuilder, show')
 
-import           RSCoin.Util.Timed          (MonadTimed, MonadTimedError (..))
+import           Control.TimeWarp.Timed     (MonadTimed, MonadTimedError (..))
 
 import           RSCoin.Core.Crypto         (PublicKey, Signature, hash)
 import           RSCoin.Core.Error          (rscExceptionFromException,

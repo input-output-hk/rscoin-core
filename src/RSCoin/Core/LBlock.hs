@@ -5,14 +5,14 @@ module RSCoin.Core.LBlock
        , checkLBlock
        ) where
 
-import           RSCoin.Core.Crypto     (PublicKey, SecretKey, hash,
-                                         sign, verify)
+import           RSCoin.Core.Crypto     (PublicKey, SecretKey, hash, sign,
+                                         verify)
 import           RSCoin.Core.Primitives (Transaction)
 import           RSCoin.Core.Types      (ActionLog,
                                          ActionLogEntry (CloseEpochEntry),
-                                         ActionLogEntryHash,
-                                         ActionLogHeads, HBlockHash,
-                                         LBlock (..), LBlockHash (..))
+                                         ActionLogEntryHash, ActionLogHeads,
+                                         HBlockHash, LBlock (..),
+                                         LBlockHash (..))
 
 -- | Construct lower-level block from txset, mintette's secret key,
 -- hash of previous higher-level block, heads of known log chains

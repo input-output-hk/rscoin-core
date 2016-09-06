@@ -8,7 +8,7 @@ module Test.RSCoin.Core.TransactionSpec
        ( spec,
        ) where
 
-import           Control.Lens          (view, _2, _3, (&), (%~))
+import           Control.Lens          (view, (%~), (&), _2, _3)
 import           Data.Bifunctor        (first, second)
 import qualified Data.IntMap.Strict    as M (IntMap, elems, findWithDefault,
                                              foldrWithKey, lookup, mapWithKey,

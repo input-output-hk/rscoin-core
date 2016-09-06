@@ -5,7 +5,7 @@
 -- | Specialization of Logging module for RSCoin.
 
 module RSCoin.Core.Logging
-       ( module RSCoin.Util.Logging
+       ( module Control.TimeWarp.Logging
        , initLogging
 
          -- * Predefined logger names
@@ -21,8 +21,8 @@ module RSCoin.Core.Logging
        , userLoggerName
        ) where
 
-import           RSCoin.Util.Logging hiding (initLogging)
-import qualified RSCoin.Util.Logging as L (initLogging)
+import           Control.TimeWarp.Logging hiding (initLogging)
+import qualified Control.TimeWarp.Logging as L (initLogging)
 
 initLogging :: Severity -> IO ()
 initLogging = L.initLogging predefinedLoggers
