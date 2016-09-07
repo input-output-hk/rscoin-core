@@ -62,3 +62,4 @@ predefinedLoggers =
 
 instance WithNamedLogger IO where
     getLoggerName = pure nakedLoggerName
+    modifyLoggerName = const id
