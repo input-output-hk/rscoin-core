@@ -96,6 +96,5 @@ data NotaryMethod
 data DumpMethod
     = GetLogs
     | GetMintetteUtxo
-    | GetMintetteBlocks
     | GetMintetteLogs
     deriving (Show)

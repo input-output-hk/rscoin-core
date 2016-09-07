@@ -35,7 +35,6 @@ module RSCoin.Core.Communication
        , getMintettes
        , getLogs
        , getMintetteUtxo
-       , getMintetteBlocks
        , getMintetteLogs
        , publishTxToNotary
        , getTxSignatures
@@ -80,7 +79,7 @@ import           RSCoin.Core.Types          (ActionLog, CheckConfirmation,
                                              CheckConfirmations,
                                              CommitAcknowledgment,
                                              Explorer (..), Explorers, HBlock,
-                                             HBlockMetadata, LBlock, Mintette,
+                                             HBlockMetadata, Mintette,
                                              MintetteId, Mintettes,
                                              NewPeriodData, PeriodId,
                                              PeriodResult, Utxo, WithMetadata)
@@ -491,38 +490,6 @@ getMintetteUtxo mId = do
             (handleEither $
              callMintette mintette $ P.call (P.RSCDump P.GetMintetteUtxo))
 
-getMintetteBlocks :: WorkMode m => MintetteId -> PeriodId -> m (Maybe [LBlock])
-getMintetteBlocks mId pId = do
-    ms <- getMintettes
-    maybe onNothing onJust $ ms `atMay` mId
-  where
-    onNothing = liftIO $ do
-        let e = sformat ("Mintette with this index " % int % " doesn't exist") mId
-        L.logWarning e
-        throwM $ MethodError e
-    onJust mintette =
-        withResult
-            infoMessage
-            (maybe onError onSuccess) $
-            handleEither $
-            callMintette mintette $ P.call (P.RSCDump P.GetMintetteBlocks) pId
-      where
-        infoMessage =
-            L.logDebug $
-                sformat ("Getting blocks of mintette " % int %
-                         " with period id " % int)
-                mId pId
-        onError =
-            L.logWarning $
-                sformat ("Getting blocks of mintette " % int %
-                         " with period id " % int % " failed")
-                mId pId
-        onSuccess res =
-            L.logDebug $
-                sformat ("Successfully got blocks for period id " % int % ": " % build)
-                    pId (listBuilderJSONIndent 2 res)
-
--- TODO: code duplication as getMintetteBlocks, refactor!
 getMintetteLogs :: WorkMode m => MintetteId -> PeriodId -> m (Maybe ActionLog)
 getMintetteLogs mId pId = do
     ms <- getMintettes
