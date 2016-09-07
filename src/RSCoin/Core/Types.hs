@@ -38,6 +38,8 @@ import           Control.Arrow          (first)
 import           Data.Bifunctor         (Bifunctor (bimap))
 import           Data.Binary            (Binary)
 import           Data.Binary.Orphans    ()
+import           Data.HashMap.Strict    (HashMap)
+import qualified Data.HashMap.Strict    as HM
 import qualified Data.Map               as M
 import           Data.Maybe             (fromJust, isJust)
 import           Data.MessagePack       (MessagePack)
@@ -239,12 +241,12 @@ type Dpk = [(PublicKey, Signature PublicKey)]
 -- | Utxo is a type used by mintettes. (addrid -> addr) ∈ utxo means
 -- that there was an act of money transfer to address, but since then
 -- it wasn't used.
-type Utxo = M.Map AddrId Address
+type Utxo = HashMap AddrId Address
 
 -- | Pset is a type used by mintettes. (addrid -> transaction) ∈ pset
 -- means that mintette confirmed this transaction isn't double-spent
 -- for the given period.
-type Pset = M.Map AddrId Transaction
+type Pset = HashMap AddrId Transaction
 
 instance B.Buildable Dpk where
     build = listBuilderJSON . map pairBuilder
@@ -311,10 +313,10 @@ instance B.Buildable (AddrId, Transaction) where
     build = pairBuilder
 
 instance B.Buildable Utxo where
-    build mapping = listBuilderJSON $ M.toList mapping
+    build = mapBuilder . HM.toList
 
 instance B.Buildable Pset where
-    build mapping = listBuilderJSON $ M.toList mapping
+    build = mapBuilder . HM.toList
 
 instance B.Buildable (Address, Signature a) where
     build = pairBuilder
