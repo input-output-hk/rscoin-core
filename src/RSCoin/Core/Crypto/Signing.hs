@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveGeneric     #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE ViewPatterns      #-}
 
@@ -45,6 +46,7 @@ import qualified Data.Text.IO                 as TIO
 import qualified Data.Text.Lazy               as TL
 import           Data.Text.Lazy.Builder       (toLazyText)
 import           Data.Tuple                   (swap)
+import           GHC.Generics                 (Generic)
 import           System.Directory             (createDirectoryIfMissing)
 import           System.FilePath              (takeDirectory)
 import           Test.QuickCheck              (Arbitrary (arbitrary), vector)
@@ -61,7 +63,7 @@ import qualified RSCoin.Core.Crypto.Hashing   as H
 
 newtype Signature a = Signature
     { getSignature :: E.Signature
-    } deriving (Eq, Ord)
+    } deriving (Eq, Ord, Generic)
 
 sigToBs :: (Signature a) -> BS.ByteString
 sigToBs = E.unSignature . getSignature
