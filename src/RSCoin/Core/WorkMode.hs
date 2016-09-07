@@ -17,14 +17,14 @@ module RSCoin.Core.WorkMode
        , runEmulationMode_
        ) where
 
-import           Control.Lens             (view)
+import           Control.Lens             (view, (%~), iso)
 import           Control.Monad            (join)
 import           Control.Monad.Catch      (MonadCatch, MonadMask, MonadThrow)
-import           Control.Monad.Reader     (ReaderT, ask, runReaderT)
+import           Control.Monad.Reader     (ReaderT, ask, runReaderT, local)
 import           Control.Monad.Trans      (MonadIO (liftIO))
 import           System.Random            (StdGen, getStdGen)
 
-import           Control.TimeWarp.Logging (WithNamedLogger (getLoggerName))
+import           Control.TimeWarp.Logging (WithNamedLogger (..))
 import           Control.TimeWarp.Rpc     (Delays, MonadRpc, MsgPackRpc,
                                            PureRpc, runMsgPackRpc, runPureRpc,
                                            runPureRpc_)
@@ -60,6 +60,10 @@ newtype ContextHolder m a = ContextHolder
 
 instance Monad m => WithNamedLogger (ContextHolder m) where
     getLoggerName = ContextHolder $ view ctxLoggerName
+
+    modifyLoggerName how = ctxHolder %~ local (ctxLoggerName %~ how)
+      where
+        ctxHolder = iso getContextHolder ContextHolder
 
 instance Monad m => WithNodeContext (ContextHolder m) where
     getNodeContext = ContextHolder ask
