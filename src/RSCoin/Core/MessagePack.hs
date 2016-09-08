@@ -216,3 +216,8 @@ instance (MessagePack a, MessagePack b) =>
          MessagePack (C.WithMetadata a b) where
     toObject C.WithMetadata{..} = toObject (wmValue, wmMetadata)
     fromObject = fmap (uncurry C.WithMetadata) . fromObject
+
+instance (MessagePack a) =>
+         MessagePack (C.WithSignature a) where
+    toObject C.WithSignature {..} = toObject (wsValue, wsSignature)
+    fromObject = fmap (uncurry C.WithSignature) . fromObject

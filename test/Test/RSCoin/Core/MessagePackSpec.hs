@@ -126,6 +126,8 @@ spec =
                 \(a :: C.HBlockMetadata) -> a === mid a
             prop "WithMetadata" $
                 \(a :: C.WithMetadata Int64 String) -> a === mid a
+            prop "WithSignature" $
+                \(a :: C.WithSignature String) -> a === mid a
 
 mid :: MessagePack a => a -> a
 mid = fromJust . unpack . pack
