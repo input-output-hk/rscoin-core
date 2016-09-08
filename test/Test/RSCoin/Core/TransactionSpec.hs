@@ -52,7 +52,7 @@ instance Arbitrary TransactionValid where
                genOutput C.Coin{..} =
                    (,) <$>
                    arbitrary <*>
-                   genCoinInRange getColor 0 (C.getAmount getCoin)
+                   genCoinInRange coinColor 0 (C.getAmount coinAmount)
            unpaintedOutputsMap <- mapM genOutput coins
            padCols :: [C.Color] <- getNonEmpty <$> arbitrary
            let l
@@ -69,7 +69,7 @@ instance Arbitrary TransactionValid where
                            then return []
                            else do
                                let (outpv,inpv) =
-                                       (C.getCoin v, C.getCoin $ coins M.! 0)
+                                       (C.coinAmount v, C.coinAmount $ coins M.! 0)
                                v' <-
                                    C.CoinAmount <$>
                                    genRationalInRange
@@ -184,10 +184,10 @@ chooseAddressesJustWhenPossible :: NonEmptyList C.AddrId -> M.IntMap C.Coin  -> 
 chooseAddressesJustWhenPossible (getNonEmpty -> adrlist) cmap =
     let adrCoinMap = C.coinsToMap $ map (view _3) adrlist
         step color coin accum =
-            let adrcn = C.getCoin $ M.findWithDefault 0 color adrCoinMap
-                coin' = C.getCoin coin
+            let adrcn = C.coinAmount $ M.findWithDefault 0 color adrCoinMap
+                coin' = C.coinAmount coin
             in (adrcn - coin') >= 0 && accum
-        helper col cn = C.Coin (C.Color col) (C.getCoin cn)
+        helper col cn = C.Coin (C.Color col) (C.coinAmount cn)
     in M.null cmap ||
        (M.foldrWithKey step True cmap) ==
        (isJust $ C.chooseAddresses adrlist (M.mapWithKey helper cmap))
@@ -201,10 +201,10 @@ chooseAddressesJustWhenPossible (getNonEmpty -> adrlist) cmap =
 -- * check that result contains exactly `a1, a2, … a_n`.
 chooseSmallerAddressesFirst :: C.TransactionId -> NonEmptyList C.Coin -> Bool
 chooseSmallerAddressesFirst txId (getNonEmpty -> coins0) =
-    let col = C.getColor . head $ coins0
+    let col = C.coinColor . head $ coins0
         coinsSameCol :: [C.Coin]
         coinsSameCol =
-            map (\c -> c { C.getColor = col }) coins0
+            map (\c -> c { C.coinColor = col }) coins0
         maxCn = (maximum coinsSameCol) + (C.Coin col 1)
         extraCoins = map (maxCn +) coinsSameCol
         allCoins = coinsSameCol ++ extraCoins
@@ -217,10 +217,10 @@ chooseSmallerAddressesFirst txId (getNonEmpty -> coins0) =
         result = C.chooseAddresses allAddrIds cMap
         addrIdsEqual :: [C.AddrId] -> [C.AddrId] -> Bool
         addrIdsEqual l1 l2 = canonizeAddrIds l1 == canonizeAddrIds l2
-        canonizeAddrIds = sort . filter ((/= 0) . C.getCoin . view _3)
+        canonizeAddrIds = sort . filter ((/= 0) . C.coinAmount . view _3)
     in case result of
            Nothing -> False
            Just resMap ->
                addrIdsEqual
-                   (fst $ M.findWithDefault ([], undefined) (C.getC col) resMap)
+                   (fst $ M.findWithDefault ([], undefined) (C.getColor col) resMap)
                    addrIds

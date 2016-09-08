@@ -76,7 +76,7 @@ instance (MessagePack a, MessagePack b) => MessagePack (Either a b) where
     fromObject _               = Nothing
 
 instance MessagePack C.Coin where
-    toObject (C.Coin c t) = toObject (C.getC c, C.getAmount t)
+    toObject (C.Coin c t) = toObject (C.getColor c, C.getAmount t)
     fromObject = fmap (uncurry C.Coin . bimap C.Color C.CoinAmount) . fromObject
 
 instance MessagePack C.Address where
