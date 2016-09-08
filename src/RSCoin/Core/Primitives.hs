@@ -44,8 +44,8 @@ newtype CoinAmount = CoinAmount
 -- | Coin is the least possible unit of currency.
 -- We use very simple model at this point.
 data Coin = Coin
-    { coinColor :: Color
-    , coinAmount  :: CoinAmount
+    { coinColor :: !Color
+    , coinAmount  :: !CoinAmount
     } deriving (Show,Eq,Ord,Generic,Data)
 
 reportError :: String -> Coin -> Coin -> a
