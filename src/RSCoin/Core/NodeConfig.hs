@@ -14,6 +14,7 @@ module RSCoin.Core.NodeConfig
         , bankPublicKey
         , ctxLoggerName
         , notaryAddr
+        , notaryPublicKey
 
           -- * Other lenses
         , bankHost
@@ -26,6 +27,8 @@ module RSCoin.Core.NodeConfig
         , defaultNodeContextWithLogger
         , testBankPublicKey
         , testBankSecretKey
+        , testNotaryPublicKey
+        , testNotarySecretKey
 
           -- * Functions to read context from configuration file
         , readDeployNodeContext
@@ -69,10 +72,11 @@ import           RSCoin.Core.Primitives     (Address (..))
 
 
 data NodeContext = NodeContext
-    { _bankAddr      :: NetworkAddress
-    , _notaryAddr    :: NetworkAddress
-    , _bankPublicKey :: PublicKey
-    , _ctxLoggerName :: LoggerName
+    { _bankAddr        :: !NetworkAddress
+    , _notaryAddr      :: !NetworkAddress
+    , _bankPublicKey   :: !PublicKey
+    , _notaryPublicKey :: !PublicKey
+    , _ctxLoggerName   :: !LoggerName
     } deriving (Show)
 
 $(makeLenses ''NodeContext)
@@ -88,6 +92,7 @@ defaultNodeContextWithLogger _ctxLoggerName = NodeContext {..}
     _bankAddr      = (localhost, defaultPort)
     _notaryAddr    = (localhost, 4001)
     _bankPublicKey = testBankPublicKey
+    _notaryPublicKey = testNotaryPublicKey
 
 bankHost :: Getter NodeContext Host
 bankHost = bankAddr . _1
@@ -102,15 +107,31 @@ notaryPort = notaryAddr . _2
 genesisAddress :: Getter NodeContext Address
 genesisAddress = bankPublicKey . to Address
 
--- | This Bank public key should be used only for tests and benchmarks.
+-- | This Bank public key should be used only for tests, benchmarks
+-- and local deployment.
 testBankPublicKey :: PublicKey
 testBankPublicKey = derivePublicKey testBankSecretKey
 
--- | This Bank secret key should be used only for tests and benchmarks.
+-- | This Bank secret key should be used only for tests, benchmarks
+-- and local deployment.
 testBankSecretKey :: SecretKey
-testBankSecretKey = snd $
-                    fromMaybe (error "[FATAL] Failed to construct (pk, sk) pair") $
-                    deterministicKeyGen "default-node-context-keygen-seed"
+testBankSecretKey =
+    snd $
+    fromMaybe (error "[FATAL] Failed to construct (pk, sk) pair") $
+    deterministicKeyGen "default-node-context-keygen-seed"
+
+-- | This Notary public key should be used only for tests, benchmarks
+-- and local deployment.
+testNotaryPublicKey :: PublicKey
+testNotaryPublicKey = derivePublicKey testNotarySecretKey
+
+-- | This Notary secret key should be used only for tests, benchmarks
+-- and local deployment.
+testNotarySecretKey :: SecretKey
+testNotarySecretKey =
+    snd $
+    fromMaybe (error "[FATAL] Failed to construct (pk, sk) pair for Notary") $
+    deterministicKeyGen "dees-negyek-txetnoc-edon-tluafed"
 
 bankPublicKeyPropertyName :: IsString s => s
 bankPublicKeyPropertyName = "bank.publicKey"
