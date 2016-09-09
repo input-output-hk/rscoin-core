@@ -61,9 +61,11 @@ module RSCoin.Core.Communication
        ) where
 
 import           Control.Exception          (Exception (..))
-import           Control.Monad              (when)
+import           Control.Lens               (view)
+import           Control.Monad              (unless, when)
 import           Control.Monad.Catch        (catch, throwM)
 import           Control.Monad.Trans        (MonadIO, liftIO)
+import           Data.Binary                (Binary)
 import qualified Data.Map                   as M
 import           Data.MessagePack           (MessagePack)
 import           Data.Monoid                ((<>))
@@ -87,6 +89,8 @@ import           RSCoin.Core.Error          (rscExceptionFromException,
                                              rscExceptionToException)
 import           RSCoin.Core.Logging        (WithNamedLogger (..))
 import qualified RSCoin.Core.Logging        as L
+import           RSCoin.Core.NodeConfig     (WithNodeContext (getNodeContext),
+                                             bankPublicKey, notaryPublicKey)
 import           RSCoin.Core.Primitives     (AddrId, Address, Transaction,
                                              TransactionId)
 import qualified RSCoin.Core.Protocol       as P
@@ -101,7 +105,9 @@ import           RSCoin.Core.Types          (ActionLog, CheckConfirmation,
                                              HBlockMetadata, Mintette,
                                              MintetteId, Mintettes,
                                              NewPeriodData, PeriodId,
-                                             PeriodResult, Utxo, WithMetadata)
+                                             PeriodResult, Utxo, WithMetadata,
+                                             WithSignature (..),
+                                             verifyWithSignature)
 import           RSCoin.Core.WorkMode       (WorkMode)
 
 -- | Errors which may happen during remote call.
@@ -109,6 +115,8 @@ data CommunicationError
     = ProtocolError Text  -- ^ Message was encoded incorrectly.
     | TimeoutError Text   -- ^ Waiting too long for the reply
     | MethodError Text    -- ^ Error occured during method execution.
+    | BadSignature Text   -- ^ Result of method must be signed, but
+                          -- signature is bad.
     deriving (Show, Typeable)
 
 instance Exception CommunicationError where
@@ -119,6 +127,7 @@ instance B.Buildable CommunicationError where
     build (ProtocolError t) = "internal error: " <> B.build t
     build (TimeoutError t)  = "timeout error: " <> B.build t
     build (MethodError t)   = "method error: " <> B.build t
+    build (BadSignature t)  = B.build t <> " has provided a bad signature"
 
 rpcErrorHandler :: (MonadIO m, WithNamedLogger m) => MP.RpcError -> m a
 rpcErrorHandler = liftIO . log' . fromError
@@ -156,6 +165,32 @@ withResult before after action = do
     liftIO $ after a
     return a
 
+data Signer
+    = SignerBank
+    | SignerNotary
+
+signerName :: Signer -> Text
+signerName SignerBank   = "bank"
+signerName SignerNotary = "notary"
+
+signerKey
+    :: (Functor m, WithNodeContext m)
+    => Signer -> m PublicKey
+signerKey SignerBank   = view bankPublicKey <$> getNodeContext
+signerKey SignerNotary = view notaryPublicKey <$> getNodeContext
+
+-- Copy-paste is bad, but I hope this code will be rewritten soon anyway.
+withSignedResult
+    :: (Binary a, WorkMode m)
+    => Signer -> IO () -> (a -> IO ()) -> m (WithSignature a) -> m a
+withSignedResult signer before after action = do
+    liftIO before
+    ws@WithSignature {..} <- action
+    pk <- signerKey signer
+    let pkOwner = signerName signer
+    unless (verifyWithSignature pk ws) $ throwM $ BadSignature pkOwner
+    wsValue <$ liftIO (after wsValue)
+
 ---- —————————————————————————————————————————————————————————— ----
 ---- Bank endpoints ——————————————————————————————————————————— ----
 ---- —————————————————————————————————————————————————————————— ----
@@ -172,7 +207,8 @@ sendBankLocalControlRequest request =
 
 getAddresses :: WorkMode m => m AddressToTxStrategyMap
 getAddresses =
-    withResult
+    withSignedResult
+        SignerBank
         (L.logDebug "Getting list of addresses")
         (L.logDebug .
          sformat ("Successfully got list of addresses " % build) .
