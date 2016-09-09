@@ -110,10 +110,10 @@ instance Ser.Serialize (Signature a) where
 instance SafeCopy (Signature a) where
 
 instance ToJSON (Signature a)where
-    toJSON = toJSON . B64.encodeUrl . sigToBs
+    toJSON = toJSON . B64.JsonByteStringDeprecated . sigToBs
 
 instance FromJSON (Signature a) where
-    parseJSON = fmap (bsToSig . B64.getJsonByteStringTODO) . parseJSON
+    parseJSON = fmap (bsToSig . B64.getJsonByteStringDeprecated) . parseJSON
 
 newtype SecretKey = SecretKey
     { getSecretKey :: E.SecretKey
@@ -208,10 +208,10 @@ instance Arbitrary PublicKey where
     arbitrary = derivePublicKey <$> arbitrary
 
 instance ToJSON PublicKey where
-    toJSON = toJSON . B64.encodeUrl . pkToBs
+    toJSON = toJSON . B64.JsonByteStringDeprecated . pkToBs
 
 instance FromJSON PublicKey where
-    parseJSON = fmap (bsToPk . B64.getJsonByteStringTODO) . parseJSON
+    parseJSON = fmap (bsToPk . B64.getJsonByteStringDeprecated) . parseJSON
 
 -- | Sign a serializable value.
 sign :: Binary t => SecretKey -> t -> Signature t

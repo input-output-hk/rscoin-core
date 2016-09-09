@@ -61,7 +61,7 @@ unsafeHash :: Binary t => t -> Hash a
 unsafeHash = Hash . blake2b256 . toStrict . encode
 
 instance ToJSON (Hash a) where
-    toJSON = toJSON . B64.JsonByteStringTODO . getHash
+    toJSON = toJSON . B64.JsonByteStringDeprecated . getHash
 
 instance FromJSON (Hash a) where
-    parseJSON = fmap (Hash . B64.getJsonByteStringTODO) . parseJSON
+    parseJSON = fmap (Hash . B64.getJsonByteStringDeprecated) . parseJSON
