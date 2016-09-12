@@ -44,7 +44,7 @@ module RSCoin.Core.NodeConfig
 import           Control.Exception          (Exception, throwIO)
 import           Control.Lens               (Getter, makeLenses, to, (.~), _1,
                                              _2)
-import           Control.Monad              (when)
+import           Control.Monad              (mzero, when)
 import           Control.Monad.Except       (ExceptT)
 import           Control.Monad.Reader       (ReaderT)
 import           Control.Monad.State        (StateT)
@@ -136,6 +136,9 @@ testNotarySecretKey =
 bankPublicKeyPropertyName :: IsString s => s
 bankPublicKeyPropertyName = "bank.publicKey"
 
+notaryPublicKeyPropertyName :: IsString s => s
+notaryPublicKeyPropertyName = "notary.publicKey"
+
 readRequiredDeployContext :: Maybe FilePath -> IO (Config.Config, NodeContext)
 readRequiredDeployContext configPath = do
     confFile <- defaultConfigurationPath
@@ -160,6 +163,10 @@ data ConfigurationReadException
 
 instance Exception ConfigurationReadException
 
+instance Config.Configured PublicKey where
+    convert (Config.String text) = constructPublicKey text
+    convert _                    = mzero
+
 -- | Reads config from 'defaultConfigurationPath' and converts into 'NodeContext'.
 -- Tries to read also bank public key if it is not provided. If provied then throws
 -- exception in case of mismatch.
@@ -172,6 +179,8 @@ readDeployNodeContext (Just newBankSecretKey) confPath = do
         $ throwIO $ ConfigurationReadException
         $ sformat ("Configuration file doesn't have property: " % stext) bankPublicKeyPropertyName
 
+    cfgNotaryPublicKey <- Config.require deployConfig notaryPublicKeyPropertyName
+
     let Just cfgReadPublicKey = cfgBankPublicKey
     let newBankPublicKey      = derivePublicKey newBankSecretKey
     let pkConfigValue         = Config.String $ sformat build newBankPublicKey
@@ -181,16 +190,20 @@ readDeployNodeContext (Just newBankSecretKey) confPath = do
 
     return obtainedContext
         { _bankPublicKey = newBankPublicKey
+        , _notaryPublicKey = cfgNotaryPublicKey
         }
 readDeployNodeContext Nothing confPath = do
     (deployConfig, obtainedContext) <- readRequiredDeployContext confPath
     cfgBankPublicKey  <- Config.require deployConfig bankPublicKeyPropertyName
+    cfgNotaryPublicKey <- Config.require deployConfig notaryPublicKeyPropertyName
     case constructPublicKey cfgBankPublicKey of
         Nothing -> throwIO
             $ ConfigurationReadException
             $ sformat (stext % " is not a valid public key in config file") cfgBankPublicKey
         Just pk ->
-            return obtainedContext { _bankPublicKey = pk }
+            return obtainedContext { _bankPublicKey = pk
+                                   , _notaryPublicKey = cfgNotaryPublicKey
+                                   }
 
 -- | ContextArgument is passed to functions which need NodeContext. It
 -- aggregates variety of ways to pass context.
