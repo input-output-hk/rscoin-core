@@ -3,6 +3,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE UndecidableInstances  #-}
 {-# LANGUAGE ViewPatterns          #-}
+{-# LANGUAGE TypeFamilies          #-}
 
 -- | WorkMode type class.
 
@@ -28,7 +29,7 @@ import           Control.TimeWarp.Logging (WithNamedLogger (..))
 import           Control.TimeWarp.Rpc     (Delays, MonadRpc, MsgPackRpc,
                                            PureRpc, runMsgPackRpc, runPureRpc,
                                            runPureRpc_)
-import           Control.TimeWarp.Timed   (MonadTimed, runTimedIO)
+import           Control.TimeWarp.Timed   (MonadTimed (..), runTimedIO)
 
 import           RSCoin.Core.Crypto       (SecretKey)
 import           RSCoin.Core.Logging      (LoggerName, bankLoggerName)
@@ -56,7 +57,22 @@ instance ( MonadTimed m
 
 newtype ContextHolder m a = ContextHolder
     { getContextHolder :: ReaderT NodeContext m a
-    } deriving (Functor, Applicative, Monad, MonadIO, MonadThrow, MonadCatch, MonadMask, MonadTimed, MonadRpc)
+    } deriving (Functor, Applicative, Monad, MonadIO, MonadThrow, MonadCatch, MonadMask, MonadRpc)
+
+instance MonadTimed m => MonadTimed (ContextHolder m) where
+    type ThreadId (ContextHolder m) = ThreadId m
+
+    localTime = ContextHolder localTime
+
+    wait = ContextHolder . wait
+
+    fork = ContextHolder . fork . getContextHolder
+
+    myThreadId = ContextHolder myThreadId
+
+    killThread = ContextHolder . killThread
+
+    timeout t = ContextHolder . timeout t . getContextHolder
 
 instance Monad m => WithNamedLogger (ContextHolder m) where
     getLoggerName = ContextHolder $ view ctxLoggerName
