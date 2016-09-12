@@ -40,6 +40,7 @@ import           Data.HashSet               (HashSet)
 import qualified Data.HashSet               as HS hiding (HashSet)
 import           Data.Map                   (Map)
 import           Data.SafeCopy              (base, deriveSafeCopy)
+import           Data.Set                   (Set)
 import qualified Data.Set                   as S
 import           Data.Text.Buildable        (Buildable (build))
 import           GHC.Generics               (Generic)
@@ -99,7 +100,7 @@ type AddressToTxStrategyMap = Map Address TxStrategy
 data AllocationAddress
     = TrustAlloc { _address :: Address }  -- ^ PublicKey we trust
     | UserAlloc  { _address :: Address }  -- ^ PublicKey of other User
-    deriving (Eq, Generic, Hashable, Show)
+    deriving (Eq, Generic, Hashable, Show, Ord)
 
 $(deriveSafeCopy 0 'base ''AllocationAddress)
 $(makeLenses ''AllocationAddress)
@@ -129,7 +130,7 @@ data PartyAddress
     | UserParty
         { partyAddress :: Address  -- ^ Same as for 'TrustParty'
         }
-    deriving (Eq, Show)
+    deriving (Eq, Show, Generic, Hashable)
 
 $(deriveSafeCopy 0 'base ''PartyAddress)
 
@@ -154,8 +155,8 @@ instance Buildable PartyAddress where
 -- @TODO: avoid duplication of sets in '_allParties' and '_txStrategy.txParties'
 data AllocationStrategy = AllocationStrategy
     { _sigNumber  :: Int                        -- ^ Number of required signatures in transaction
-    , _allParties :: HashSet AllocationAddress  -- ^ 'Set' of all parties for this address
-    } deriving (Eq, Show, Generic, Hashable)
+    , _allParties :: Set AllocationAddress  -- ^ 'Set' of all parties for this address
+    } deriving (Eq, Show, Generic)
 
 $(deriveSafeCopy 0 'base ''AllocationStrategy)
 $(makeLenses ''AllocationStrategy)
@@ -163,9 +164,9 @@ $(makeLenses ''AllocationStrategy)
 instance Binary AllocationStrategy where
     put AllocationStrategy{..} = do
         put _sigNumber
-        put (HS.toList _allParties)
+        put (S.toList _allParties)
 
-    get = AllocationStrategy <$> get <*> (HS.fromList <$> get)
+    get = AllocationStrategy <$> get <*> (S.fromList <$> get)
 
 instance Buildable AllocationStrategy where
     build AllocationStrategy{..} = bprint template
@@ -181,7 +182,7 @@ instance Buildable AllocationStrategy where
 data AllocationInfo = AllocationInfo
     { _allocationStrategy   :: AllocationStrategy
     , _currentConfirmations :: HashMap AllocationAddress Address
-    } deriving (Eq, Show, Generic, Hashable)
+    } deriving (Eq, Show, Generic)
 
 $(deriveSafeCopy 0 'base ''AllocationInfo)
 $(makeLenses ''AllocationInfo)
@@ -201,7 +202,7 @@ allocateTxFromAlloc :: AllocationStrategy -> TxStrategy
 allocateTxFromAlloc AllocationStrategy{..} =
     MOfNStrategy
         _sigNumber $
-        S.fromList $ (HS.toList _allParties)^..traversed.address
+        S.fromList $ (S.toList _allParties)^..traversed.address
 
 -- | Converts 'PartyAddress' to original 'AllocationAddress'.
 partyToAllocation :: PartyAddress -> AllocationAddress

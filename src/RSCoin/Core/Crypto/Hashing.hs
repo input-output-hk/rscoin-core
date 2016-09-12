@@ -36,13 +36,13 @@ newtype Hash a = Hash
 $(deriveSafeCopy 0 'base ''Hash)
 
 instance Buildable (Hash a) where
-    build = build . B64.encode . getHash
+    build = build . B64.encodeUrl . getHash
 
 hashLengthBytes :: Integral a => a
 hashLengthBytes = 256 `div` 8
 
 parseHash :: T.Text -> Either T.Text (Hash a)
-parseHash = B64.decode >=> constructHashChecked
+parseHash = B64.decodeUrl >=> constructHashChecked
   where
     constructHashChecked bs
       | BS.length bs == hashLengthBytes = pure $ Hash bs
@@ -61,7 +61,7 @@ unsafeHash :: Binary t => t -> Hash a
 unsafeHash = Hash . blake2b256 . toStrict . encode
 
 instance ToJSON (Hash a) where
-    toJSON = toJSON . B64.JsonByteString . getHash
+    toJSON = toJSON . B64.JsonByteStringDeprecated . getHash
 
 instance FromJSON (Hash a) where
-    parseJSON = fmap (Hash . B64.getJsonByteString) . parseJSON
+    parseJSON = fmap (Hash . B64.getJsonByteStringDeprecated) . parseJSON

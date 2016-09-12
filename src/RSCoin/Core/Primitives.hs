@@ -41,8 +41,8 @@ newtype CoinAmount = CoinAmount
     { getAmount :: Rational
     } deriving (Eq,Show,Ord,Num,Fractional,RealFrac,Real,Data,B.Buildable,Hashable,Binary)
 
--- | Coin is the least possible unit of currency.
--- We use very simple model at this point.
+-- | Coin is the unit of currency. It has amount and color. In fact,
+-- it's colored coin.
 data Coin = Coin
     { coinColor :: !Color
     , coinAmount  :: !CoinAmount

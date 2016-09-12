@@ -78,7 +78,7 @@ instance Buildable [(Signature a, PublicKey)] where
     build = listBuilderJSON
 
 instance Buildable (Signature a) where
-    build = build . B64.encode . E.unSignature . getSignature
+    build = build . B64.encodeUrl . E.unSignature . getSignature
 
 -- @TODO: avoid code duplication for Show and Read instances
 instance Show (Signature a) where
@@ -89,7 +89,7 @@ instance Read (Signature a) where
         either
             (error . T.unpack)
             (Signature . E.Signature)
-        . B64.decode
+        . B64.decodeUrl
         . T.pack
         <$>
         (string "Signature " *> between (char '{') (char '}')
@@ -110,10 +110,10 @@ instance Ser.Serialize (Signature a) where
 instance SafeCopy (Signature a) where
 
 instance ToJSON (Signature a)where
-    toJSON = toJSON . B64.encode . sigToBs
+    toJSON = toJSON . B64.JsonByteStringDeprecated . sigToBs
 
 instance FromJSON (Signature a) where
-    parseJSON = fmap (bsToSig . B64.getJsonByteString) . parseJSON
+    parseJSON = fmap (bsToSig . B64.getJsonByteStringDeprecated) . parseJSON
 
 newtype SecretKey = SecretKey
     { getSecretKey :: E.SecretKey
@@ -126,7 +126,7 @@ bsToSk :: BS.ByteString -> SecretKey
 bsToSk = SecretKey . E.SecretKey
 
 instance Buildable SecretKey where
-    build = build . B64.encode . skToBs
+    build = build . B64.encodeUrl . skToBs
 
 instance Show SecretKey where
     show sk = "SecretKey { getSecretKey = " ++ T.unpack (show' sk) ++ " }"
@@ -136,7 +136,7 @@ instance Read SecretKey where
         either
             (error . T.unpack)
             bsToSk
-        . B64.decode
+        . B64.decodeUrl
         . T.pack
         <$>
         (string "SecretKey " *> between (char '{') (char '}')
@@ -171,7 +171,7 @@ bsToPk :: BS.ByteString -> PublicKey
 bsToPk = PublicKey . E.PublicKey
 
 instance Buildable PublicKey where
-    build = build .  B64.encode . pkToBs
+    build = build .  B64.encodeUrl . pkToBs
 
 instance Show PublicKey where
     show pk = "PublicKey { getPublicKey = " ++ T.unpack (show' pk) ++ " }"
@@ -181,7 +181,7 @@ instance Read PublicKey where
         either
             (error . T.unpack)
             (PublicKey . E.PublicKey)
-        . B64.decode
+        . B64.decodeUrl
         . T.pack
         <$>
         (string "PublicKey " *> between (char '{') (char '}')
@@ -208,10 +208,10 @@ instance Arbitrary PublicKey where
     arbitrary = derivePublicKey <$> arbitrary
 
 instance ToJSON PublicKey where
-    toJSON = toJSON . B64.encode . pkToBs
+    toJSON = toJSON . B64.JsonByteStringDeprecated . pkToBs
 
 instance FromJSON PublicKey where
-    parseJSON = fmap (bsToPk . B64.getJsonByteString) . parseJSON
+    parseJSON = fmap (bsToPk . B64.getJsonByteStringDeprecated) . parseJSON
 
 -- | Sign a serializable value.
 sign :: Binary t => SecretKey -> t -> Signature t
@@ -240,7 +240,8 @@ deterministicKeyGen seed =
 -- | Constructs signature from UTF-8 base64 text.
 constructSignature :: Text -> Maybe (Signature a)
 constructSignature =
-    either (const Nothing) (Just . Signature . E.Signature) . B64.decode . trim
+    either (const Nothing) (Just . Signature . E.Signature) .
+    B64.decodeUrl . trim
   where
     trim = T.dropAround isSpace
 
@@ -259,7 +260,8 @@ readSignature fp =
 -- | Constructs public key from UTF-8 base64 text.
 constructPublicKey :: Text -> Maybe PublicKey
 constructPublicKey =
-    either (const Nothing) (Just . PublicKey . E.PublicKey) . B64.decode . trim
+    either (const Nothing) (Just . PublicKey . E.PublicKey) .
+    B64.decodeUrl . trim
   where
     trim = T.dropAround isSpace
 
