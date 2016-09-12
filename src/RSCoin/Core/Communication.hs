@@ -219,29 +219,33 @@ getAddresses =
 -- | Given the height/perioud id, retreives block if it's present
 getBlockByHeight :: WorkMode m => PeriodId -> m HBlock
 getBlockByHeight pId =
-    withResult
+    withSignedResult
+        SignerBank
         infoMessage
         onSuccess
         (head <$> callBank (P.call (P.RSCBank P.GetHBlocks) [pId]))
   where
-    infoMessage =
-        L.logDebug $ sformat ("Getting block with height " % int) pId
+    infoMessage = L.logDebug $ sformat ("Getting block with height " % int) pId
     onSuccess (res :: HBlock) =
         L.logDebug $
-            sformat ("Successfully got block with height " % int % ": " % build)
-                pId res
+        sformat
+            ("Successfully got block with height " % int % ": " % build)
+            pId
+            res
 
 -- | Retrieves blockchainHeight from the server
 getBlockchainHeight :: WorkMode m => m PeriodId
 getBlockchainHeight =
-    withResult
+    withSignedResult
+        SignerBank
         (L.logDebug "Getting blockchain height")
         (L.logDebug . sformat ("Blockchain height is " % int))
         $ callBank $ P.call (P.RSCBank P.GetBlockchainHeight)
 
 getBlocksByHeight :: WorkMode m => PeriodId -> PeriodId -> m [HBlock]
 getBlocksByHeight from to =
-    withResult
+    withSignedResult
+        SignerBank
         infoMessage
         successMessage
         $ callBank $ P.call (P.RSCBank P.GetHBlocks) [from..to]
@@ -259,7 +263,8 @@ getBlocksByHeight from to =
 
 getExplorers :: WorkMode m => m Explorers
 getExplorers =
-    withResult
+    withSignedResult
+        SignerBank
         (L.logDebug "Getting list of explorers")
         (L.logDebug .
          sformat ("Successfully got list of explorers " % build) .
@@ -267,15 +272,11 @@ getExplorers =
     callBank $ P.call (P.RSCBank P.GetExplorers)
 
 getGenesisBlock :: WorkMode m => m HBlock
-getGenesisBlock = do
-    liftIO $ L.logDebug "Getting genesis block"
-    block <- getBlockByHeight 0
-    liftIO $ L.logDebug "Successfully got genesis block"
-    return block
+getGenesisBlock = getBlockByHeight 0
 
 getLogs :: WorkMode m => MintetteId -> Int -> Int -> m (Maybe ActionLog)
 getLogs m from to =
-    withResult infoMessage (maybe onError onSuccess) $
+    withSignedResult SignerBank infoMessage (maybe onError onSuccess) $
     callBank $ P.call (P.RSCDump P.GetLogs) m from to
   where
     infoMessage =
@@ -299,14 +300,16 @@ getLogs m from to =
 
 getMintettes :: WorkMode m => m Mintettes
 getMintettes =
-    withResult
+    withSignedResult
+        SignerBank
         (L.logDebug "Getting list of mintettes")
-        (L.logDebug . sformat ("Successfully got list of mintettes " % build))
-        $ callBank $ P.call (P.RSCBank P.GetMintettes)
+        (L.logDebug . sformat ("Successfully got list of mintettes " % build)) $
+    callBank $ P.call (P.RSCBank P.GetMintettes)
 
 getStatisticsId :: WorkMode m => m Int
 getStatisticsId =
-    withResult
+    withSignedResult
+        SignerBank
         (L.logDebug "Getting statistics id")
         (L.logDebug . sformat ("Statistics id is " % int)) $
     callBank $ P.call (P.RSCBank P.GetStatisticsId)
@@ -508,8 +511,11 @@ announceNewPeriodsToNotary pId' hblocks hblocksSig = do
     callNotary $ P.call (P.RSCNotary P.AnnounceNewPeriodsToNotary) pId' hblocks hblocksSig
 
 getNotaryPeriod :: WorkMode m => m PeriodId
-getNotaryPeriod = do
-    L.logDebug "Getting period of Notary"
+getNotaryPeriod =
+    withSignedResult
+        SignerNotary
+        (L.logDebug "Getting period of Notary")
+        (L.logDebug . sformat ("Notary's last period is " % int)) $
     callNotary $ P.call $ P.RSCNotary P.GetNotaryPeriod
 
 -- | Read-only method of Notary. Returns current state of signatures
@@ -517,7 +523,7 @@ getNotaryPeriod = do
 -- transaction inputs) and transaction itself.
 getTxSignatures :: WorkMode m => Transaction -> Address -> m [(Address, Signature Transaction)]
 getTxSignatures tx addr =
-    withResult infoMessage successMessage $
+    withSignedResult SignerNotary infoMessage successMessage $
     callNotary $ P.call (P.RSCNotary P.GetSignatures) tx addr
   where
     infoMessage =
@@ -535,14 +541,12 @@ pollPendingTransactions
     => [Address]
     -> m [Transaction]
 pollPendingTransactions parties =
-    withResult infoMessage successMessage $
+    withSignedResult SignerNotary infoMessage successMessage $
     callNotary $ P.call (P.RSCNotary P.PollPendingTransactions) parties
   where
     infoMessage =
         L.logDebug $
-        sformat
-            ("Polling transactions to sign for addresses: " % shown)
-            parties
+        sformat ("Polling transactions to sign for addresses: " % shown) parties
     successMessage res =
         L.logDebug $ sformat ("Received transactions to sign: " % shown) res
 
@@ -556,7 +560,7 @@ publishTxToNotary
                                 -- (made with its secret key)
     -> m [(Address, Signature Transaction)] -- ^ signatures for all parties already signed the transaction
 publishTxToNotary tx addr sg =
-    withResult infoMessage successMessage $
+    withSignedResult SignerNotary infoMessage successMessage $
     callNotary $ P.call (P.RSCNotary P.PublishTransaction) tx addr sg
   where
     infoMessage =
@@ -566,8 +570,11 @@ publishTxToNotary tx addr sg =
         L.logDebug $ sformat ("Received signatures from Notary: " % shown) res
 
 queryNotaryCompleteMSAddresses :: WorkMode m => m [(Address, TxStrategy)]
-queryNotaryCompleteMSAddresses = do
-    L.logDebug "Querying Notary complete MS addresses"
+queryNotaryCompleteMSAddresses =
+    withSignedResult
+        SignerNotary
+        (L.logDebug "Querying Notary complete MS addresses")
+        (const $ pure ()) $
     callNotary $ P.call $ P.RSCNotary P.QueryCompleteMS
 
 queryNotaryMyMSAllocations
@@ -575,16 +582,13 @@ queryNotaryMyMSAllocations
     => AllocationAddress
     -> m [(MSAddress, AllocationInfo)]
 queryNotaryMyMSAllocations allocAddr =
-    withResult
-        infoMessage
-        successMessage
-        $ callNotary $ P.call (P.RSCNotary P.QueryMyAllocMS) allocAddr
+    withSignedResult SignerNotary infoMessage successMessage $
+    callNotary $ P.call (P.RSCNotary P.QueryMyAllocMS) allocAddr
   where
     infoMessage = L.logDebug "Calling Notary for my MS addresses..."
     successMessage res =
-        L.logDebug
-        $ sformat ("Retrieving from Notary: " % build)
-        $ mapBuilder res
+        L.logDebug $
+        sformat ("Retrieving from Notary: " % build) $ mapBuilder res
 
 removeNotaryCompleteMSAddresses :: WorkMode m => [Address] -> Signature [Address] -> m ()
 removeNotaryCompleteMSAddresses addresses signedAddrs = do
