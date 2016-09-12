@@ -43,7 +43,7 @@ spec =
       "corresponding value from the second map."
 
 sameColorCorrect :: C.Coin -> C.Coin -> Bool
-sameColorCorrect c1 c2 = (C.getColor c1 == C.getColor c2) == C.sameColor c1 c2
+sameColorCorrect c1 c2 = (C.coinColor c1 == C.coinColor c2) == C.sameColor c1 c2
 
 sumCoinReturnsSum :: C.Color -> NonEmptyList Rational -> Bool
 sumCoinReturnsSum color (getNonEmpty -> values) =
@@ -59,8 +59,8 @@ sumCoinReturnsSum color (getNonEmpty -> values) =
 
 verifyStructureCoinsListToMap :: [C.Coin] -> Bool
 verifyStructureCoinsListToMap coins =
-    let coins' = filter ((/=0) . C.getCoin) coins
-        col = C.getColor $ head coins'
+    let coins' = filter ((/=0) . C.coinAmount) coins
+        col = C.coinColor $ head coins'
         sameCol = map (\(C.Coin _ c) ->
                        C.Coin col c) coins'
         cMap = C.coinsToMap sameCol
