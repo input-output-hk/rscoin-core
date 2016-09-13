@@ -129,6 +129,7 @@ instance B.Buildable CommunicationError where
     build (TimeoutError t)  = "timeout error: " <> B.build t
     build (MethodError t)   = "method error: " <> B.build t
     build (BadSignature t)  = B.build t <> " has provided a bad signature"
+    build (BadRequest t)    = B.build t
 
 rpcErrorHandler :: (MonadIO m, WithNamedLogger m) => MP.RpcError -> m a
 rpcErrorHandler = liftIO . log' . fromError
