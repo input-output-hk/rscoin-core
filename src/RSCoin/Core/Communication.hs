@@ -117,6 +117,7 @@ data CommunicationError
     | MethodError Text    -- ^ Error occured during method execution.
     | BadSignature Text   -- ^ Result of method must be signed, but
                           -- signature is bad.
+    | BadRequest Text     -- ^ Request is bad for some reason.
     deriving (Show, Typeable)
 
 instance Exception CommunicationError where
