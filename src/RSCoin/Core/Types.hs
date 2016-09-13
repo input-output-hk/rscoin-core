@@ -308,7 +308,9 @@ data NewPeriodData = NewPeriodData
     , npdNewIdPayload :: !(Maybe NewMintetteIdPayload) -- ^ Data needed for mintette to
                                                        -- restore state if it's Id changes
     , npdDpk          :: !Dpk                          -- ^ Dpk
-    } deriving (Show, Eq)
+    } deriving (Show, Eq, Generic)
+
+instance Binary NewPeriodData
 
 instance B.Buildable (AddrId, Address) where
     build = pairBuilder

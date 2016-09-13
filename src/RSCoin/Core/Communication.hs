@@ -84,7 +84,8 @@ import           Serokell.Util.Text         (listBuilderJSON,
 
 import           Control.TimeWarp.Timed     (MonadTimed, MonadTimedError (..))
 
-import           RSCoin.Core.Crypto         (PublicKey, Signature, hash)
+import           RSCoin.Core.Crypto         (PublicKey, SecretKey, Signature,
+                                             hash)
 import           RSCoin.Core.Error          (rscExceptionFromException,
                                              rscExceptionToException)
 import           RSCoin.Core.Logging        (WithNamedLogger (..))
@@ -107,6 +108,7 @@ import           RSCoin.Core.Types          (ActionLog, CheckConfirmation,
                                              NewPeriodData, PeriodId,
                                              PeriodResult, Utxo, WithMetadata,
                                              WithSignature (..),
+                                             mkWithSignature,
                                              verifyWithSignature)
 import           RSCoin.Core.WorkMode       (WorkMode)
 
@@ -321,16 +323,20 @@ getStatisticsId =
 callMintette :: (WorkMode m, MessagePack a) => Mintette -> P.Client a -> m a
 callMintette m = handleErrors . P.callMintetteSafe m
 
-announceNewPeriod :: WorkMode m => Mintette -> NewPeriodData -> m ()
-announceNewPeriod mintette npd = do
+announceNewPeriod
+    :: WorkMode m
+    => Mintette -> SecretKey -> NewPeriodData -> m ()
+announceNewPeriod mintette bankSK npd = do
     L.logDebug $
         sformat
             ("Announce new period to mintette " % build % ", new period data " %
              build)
             mintette
             npd
+    let signed = mkWithSignature bankSK npd
     handleEither $
-        callMintette mintette $ P.call (P.RSCMintette P.AnnounceNewPeriod) npd
+        callMintette mintette $
+        P.call (P.RSCMintette P.AnnounceNewPeriod) signed
 
 checkNotDoubleSpent
     :: WorkMode m
@@ -390,12 +396,13 @@ commitTx m tx cc =
     onSuccess _ =
         L.logDebug $ sformat ("Successfully committed transaction " % build) tx
 
-sendPeriodFinished :: WorkMode m => Mintette -> PeriodId -> m PeriodResult
-sendPeriodFinished mintette pId =
+sendPeriodFinished :: WorkMode m => Mintette -> SecretKey -> PeriodId -> m PeriodResult
+sendPeriodFinished mintette bankSK pId =
     withResult infoMessage successMessage $
     handleEither $
-    callMintette mintette $ P.call (P.RSCMintette P.PeriodFinished) pId
+    callMintette mintette $ P.call (P.RSCMintette P.PeriodFinished) signed
   where
+    signed = mkWithSignature bankSK pId
     infoMessage =
         L.logDebug $
         sformat ("Send period " % int % " finished to mintette " % build)
@@ -498,17 +505,18 @@ allocateMultisignatureAddress msAddr partyAddr allocStrat signature mMasterCheck
 
 announceNewPeriodsToNotary
     :: WorkMode m
-    => PeriodId
+    => SecretKey
+    -> PeriodId
     -> [HBlock]
-    -> Signature [HBlock]
     -> m ()
-announceNewPeriodsToNotary pId' hblocks hblocksSig = do
+announceNewPeriodsToNotary bankSK pIdLast blocks = do
     L.logDebug $ sformat
         ("Announce new periods to Notary, hblocks " % build %
          ", latest periodId " % int)
-        hblocks
-        pId'
-    callNotary $ P.call (P.RSCNotary P.AnnounceNewPeriodsToNotary) pId' hblocks hblocksSig
+        blocks
+        pIdLast
+    let signed = mkWithSignature bankSK (pIdLast, blocks)
+    callNotary $ P.call (P.RSCNotary P.AnnounceNewPeriodsToNotary) signed
 
 getNotaryPeriod :: WorkMode m => m PeriodId
 getNotaryPeriod =
@@ -602,15 +610,16 @@ removeNotaryCompleteMSAddresses addresses signedAddrs = do
 announceNewBlock
     :: WorkMode m
     => Explorer
+    -> SecretKey
     -> PeriodId
     -> WithMetadata HBlock HBlockMetadata
-    -> Signature (PeriodId, (WithMetadata HBlock HBlockMetadata))
     -> m PeriodId
-announceNewBlock explorer pId blk signature =
+announceNewBlock explorer bankSK pId blk =
     withResult infoMessage successMessage $
     P.callExplorer explorer $
-    P.call (P.RSCExplorer P.EMNewBlock) pId blk signature
+    P.call (P.RSCExplorer P.EMNewBlock) signed
   where
+    signed = mkWithSignature bankSK (pId, blk)
     infoMessage =
         L.logDebug $
         sformat
