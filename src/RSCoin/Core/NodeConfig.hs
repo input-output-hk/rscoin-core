@@ -59,7 +59,8 @@ import           Data.Typeable              (Typeable)
 
 import           Formatting                 (build, sformat, stext, (%))
 
-import           Control.TimeWarp.Rpc       (Host, NetworkAddress, Port)
+import           Control.TimeWarp.Rpc       (Host, NetworkAddress, Port,
+                                             ServerT)
 
 import           RSCoin.Core.Constants      (defaultConfigurationPath,
                                              defaultPort, localhost)
@@ -242,4 +243,8 @@ instance (Monad m, WithNodeContext m) =>
 
 instance (Monad m, WithNodeContext m) =>
          WithNodeContext (ExceptT e m) where
+    getNodeContext = lift getNodeContext
+
+instance (Monad m, WithNodeContext m) =>
+         WithNodeContext (ServerT m) where
     getNodeContext = lift getNodeContext
