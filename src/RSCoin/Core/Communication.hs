@@ -17,7 +17,6 @@ module RSCoin.Core.Communication
        , sendBankLocalControlRequest
 
          -- ** Simple getters
-       , getAddresses
        , getBlockByHeight
        , getBlockchainHeight
        , getBlocksByHeight
@@ -25,6 +24,7 @@ module RSCoin.Core.Communication
        , getGenesisBlock
        , getMintettes
        , getStatisticsId
+       -- , getAddresses
 
          -- * Call Mintette
          -- ** Main methods
@@ -94,8 +94,7 @@ import           RSCoin.Core.NodeConfig     (WithNodeContext (getNodeContext),
 import           RSCoin.Core.Primitives     (AddrId, Address, Transaction,
                                              TransactionId)
 import qualified RSCoin.Core.Protocol       as P
-import           RSCoin.Core.Strategy       (AddressToTxStrategyMap,
-                                             AllocationAddress, AllocationInfo,
+import           RSCoin.Core.Strategy       (AllocationAddress, AllocationInfo,
                                              AllocationStrategy, MSAddress,
                                              PartyAddress, TxStrategy)
 import           RSCoin.Core.Types          (ActionLog, CheckConfirmation,
@@ -206,15 +205,15 @@ sendBankLocalControlRequest request =
         (const $ L.logDebug "Sent control request successfully") $
          callBank $ P.call (P.RSCBank P.LocalControlRequest) request
 
-getAddresses :: WorkMode m => m AddressToTxStrategyMap
-getAddresses =
-    withSignedResult
-        SignerBank
-        (L.logDebug "Getting list of addresses")
-        (L.logDebug .
-         sformat ("Successfully got list of addresses " % build) .
-         mapBuilder . M.toList) $
-    callBank $ P.call (P.RSCBank P.GetAddresses)
+-- getAddresses :: WorkMode m => m AddressToTxStrategyMap
+-- getAddresses =
+--     withSignedResult
+--         SignerBank
+--         (L.logDebug "Getting list of addresses")
+--         (L.logDebug .
+--          sformat ("Successfully got list of addresses " % build) .
+--          mapBuilder . M.toList) $
+--     callBank $ P.call (P.RSCBank P.GetAddresses)
 
 -- TODO: should this method return Maybe HBlock ?
 -- | Given the height/perioud id, retreives block if it's present
