@@ -3,23 +3,24 @@
 -- | This module contains all constants in rscoin.
 
 module RSCoin.Core.Constants
-        ( configDirectory
-        , defaultAccountsNumber
-        , defaultConfigurationPath
-        , defaultConfigurationFileName
-        , defaultEpochDelta
-        , defaultPort
-        , defaultSecretKeyPath
-        , defaultPeriodDelta
-        , emissionHash
-        , genesisEmissionHash
-        , genesisValue
-        , localhost
-        , periodReward
-        , rpcTimeout
-        , shardDelta
-        , shardDivider
-        ) where
+       ( configDirectory
+       , defaultAccountsNumber
+       , defaultConfigurationPath
+       , defaultConfigurationFileName
+       , defaultEpochDelta
+       , defaultPort
+       , defaultSecretKeyPath
+       , defaultPeriodDelta
+       , emissionHash
+       , genesisEmissionHash
+       , genesisValue
+       , localhost
+       , periodReward
+       , rpcTimeout
+       , shardDelta
+       , shardDivider
+       , blocksQueryLimit
+       ) where
 
 import           Data.Binary                (Binary)
 import           Data.String                (IsString)
@@ -98,3 +99,8 @@ defaultConfigurationPath = (</> defaultConfigurationFileName) <$> configDirector
 
 defaultConfigurationFileName :: IsString s => s
 defaultConfigurationFileName = "deploy-rscoin.cfg"
+
+-- | Maximum number of higher-level blocks to be queried in a single
+-- request.
+blocksQueryLimit :: Num a => a
+blocksQueryLimit = 20
