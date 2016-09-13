@@ -17,6 +17,7 @@ module RSCoin.Core.Communication
        , sendBankLocalControlRequest
 
          -- ** Simple getters
+       , blocksQueryLimit
        , getBlockByHeight
        , getBlockchainHeight
        , getBlocksByHeight
@@ -245,6 +246,11 @@ getBlockchainHeight =
         (L.logDebug "Getting blockchain height")
         (L.logDebug . sformat ("Blockchain height is " % int))
         $ callBank $ P.call (P.RSCBank P.GetBlockchainHeight)
+
+-- | Maximum number of higher-level blocks to be queried in a single
+-- request.
+blocksQueryLimit :: Num a => a
+blocksQueryLimit = 20
 
 getBlocksByHeight :: WorkMode m => PeriodId -> PeriodId -> m [HBlock]
 getBlocksByHeight from to =

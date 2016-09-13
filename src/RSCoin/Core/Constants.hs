@@ -19,7 +19,6 @@ module RSCoin.Core.Constants
        , rpcTimeout
        , shardDelta
        , shardDivider
-       , blocksQueryLimit
        ) where
 
 import           Data.Binary                (Binary)
@@ -99,8 +98,3 @@ defaultConfigurationPath = (</> defaultConfigurationFileName) <$> configDirector
 
 defaultConfigurationFileName :: IsString s => s
 defaultConfigurationFileName = "deploy-rscoin.cfg"
-
--- | Maximum number of higher-level blocks to be queried in a single
--- request.
-blocksQueryLimit :: Num a => a
-blocksQueryLimit = 20
