@@ -46,6 +46,7 @@ module RSCoin.Core.Communication
        , getNotaryPeriod
        , getTxSignatures
        , pollPendingTransactions
+       , pollPendingTransactionsNoLimit
        , pollTransactionsLimit
        , publishTxToNotary
        , queryNotaryCompleteMSAddresses
@@ -548,6 +549,27 @@ pollPendingTransactions parties =
         sformat ("Polling transactions to sign for addresses: " % shown) parties
     successMessage res =
         L.logDebug $ sformat ("Received transactions to sign: " % shown) res
+
+-- | Semantics of this method is the same as of
+-- pollPendingTransactions, but it does multiple calls if there are
+-- too many addresses (because there is a limit on a single call).
+pollPendingTransactionsNoLimit
+    :: WorkMode m
+    => [Address]
+    -> m [Transaction]
+pollPendingTransactionsNoLimit parties =
+    concat <$> mapM pollChunk [0 .. chunksNumber - 1]
+  where
+    n = length parties
+    chunksNumber = (n - 1) `div` pollTransactionsLimit + 1
+    pollChunk chunkIdx =
+        pollPendingTransactions $
+        map
+            (parties !!)
+            [chunkIdx * pollTransactionsLimit .. min
+                                                     ((chunkIdx + 1) *
+                                                      pollTransactionsLimit)
+                                                     (n - 1)]
 
 -- | Send transaction with public wallet address & signature for it,
 -- get list of signatures after Notary adds yours.
