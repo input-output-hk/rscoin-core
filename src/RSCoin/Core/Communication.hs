@@ -568,7 +568,7 @@ pollPendingTransactionsNoLimit parties =
             (parties !!)
             [chunkIdx * pollTransactionsLimit .. min
                                                      ((chunkIdx + 1) *
-                                                      pollTransactionsLimit)
+                                                      pollTransactionsLimit - 1)
                                                      (n - 1)]
 
 -- | Send transaction with public wallet address & signature for it,
