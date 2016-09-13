@@ -94,7 +94,6 @@ data NotaryMethod
 
 -- | Requests for dumping state.
 data DumpMethod
-    = GetLogs
-    | GetMintetteUtxo
+    = GetMintetteUtxo
     | GetMintetteLogs
     deriving (Show)

@@ -23,7 +23,6 @@ module RSCoin.Core.Communication
        , getBlocksByHeight
        , getExplorers
        , getGenesisBlock
-       , getLogs
        , getMintettes
        , getStatisticsId
 
@@ -275,30 +274,6 @@ getExplorers =
 
 getGenesisBlock :: WorkMode m => m HBlock
 getGenesisBlock = getBlockByHeight 0
-
-getLogs :: WorkMode m => MintetteId -> Int -> Int -> m (Maybe ActionLog)
-getLogs m from to =
-    withSignedResult SignerBank infoMessage (maybe onError onSuccess) $
-    callBank $ P.call (P.RSCDump P.GetLogs) m from to
-  where
-    infoMessage =
-        L.logDebug $
-        sformat
-            ("Getting action logs of mintette " % build %
-            " with range of entries " % int % " to " % int)
-            m from to
-    onError =
-        L.logWarning $
-        sformat
-            ("Action logs of mintette " % build %
-            " (range " % int % " - " % int % ") failed.")
-            m from to
-    onSuccess aLog =
-        L.logDebug $
-        sformat
-            ("Action logs of mintette " % build %
-             " (range " % int % " - " % int % "): " % build)
-            m from to aLog
 
 getMintettes :: WorkMode m => m Mintettes
 getMintettes =
