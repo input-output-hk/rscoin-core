@@ -63,6 +63,7 @@ import           Control.Exception          (Exception (..))
 import           Control.Lens               (view)
 import           Control.Monad              (unless, when)
 import           Control.Monad.Catch        (catch, throwM)
+import           Control.Monad.Extra        (unlessM)
 import           Control.Monad.Trans        (MonadIO, liftIO)
 import           Data.Binary                (Binary)
 import qualified Data.Map                   as M
@@ -90,7 +91,8 @@ import           RSCoin.Core.Error          (rscExceptionFromException,
 import           RSCoin.Core.Logging        (WithNamedLogger (..))
 import qualified RSCoin.Core.Logging        as L
 import           RSCoin.Core.NodeConfig     (WithNodeContext (getNodeContext),
-                                             bankPublicKey, notaryPublicKey)
+                                             bankPublicKey, isTestRun,
+                                             notaryPublicKey)
 import           RSCoin.Core.Primitives     (AddrId, Address, Transaction,
                                              TransactionId)
 import qualified RSCoin.Core.Protocol       as P
@@ -434,6 +436,8 @@ getMintettePeriod m =
 
 getMintetteUtxo :: WorkMode m => MintetteId -> m Utxo
 getMintetteUtxo mId = do
+    unlessM isTestRun $
+        throwM $ BadRequest "getMintetteUtxo is only available in test run"
     ms <- getMintettes
     maybe onNothing onJust $ ms `atMay` mId
   where
