@@ -46,6 +46,7 @@ module RSCoin.Core.Communication
        , getNotaryPeriod
        , getTxSignatures
        , pollPendingTransactions
+       , pollTransactionsLimit
        , publishTxToNotary
        , queryNotaryCompleteMSAddresses
        , queryNotaryMyMSAllocations
@@ -527,6 +528,10 @@ getTxSignatures tx addr =
                 tx (hash tx) addr
     successMessage res =
         L.logDebug $ sformat ("Received signatures from Notary: " % shown) res
+
+-- | Maximum number of addresses which may be used to poll pending transactions.
+pollTransactionsLimit :: Num a => a
+pollTransactionsLimit = 10
 
 -- | This method is supposed to be used to detect transactions
 -- that you `may` want to sign.
