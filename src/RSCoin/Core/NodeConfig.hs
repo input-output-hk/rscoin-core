@@ -39,11 +39,15 @@ module RSCoin.Core.NodeConfig
 
           -- * Type class
         , WithNodeContext (..)
+
+          -- * Extra helpers
+        , isTestRun
         ) where
 
+import           Control.Applicative        (liftA2)
 import           Control.Exception          (Exception, throwIO)
-import           Control.Lens               (Getter, makeLenses, to, (.~), _1,
-                                             _2)
+import           Control.Lens               (Getter, makeLenses, to, view, (.~),
+                                             _1, _2)
 import           Control.Monad              (mzero, when)
 import           Control.Monad.Except       (ExceptT)
 import           Control.Monad.Reader       (ReaderT)
@@ -248,3 +252,11 @@ instance (Monad m, WithNodeContext m) =>
 instance (Monad m, WithNodeContext m) =>
          WithNodeContext (ServerT m) where
     getNodeContext = lift getNodeContext
+
+-- | Returns True iff bank's and notary's keys in context are test keys.
+isTestRun
+    :: (Applicative m, WithNodeContext m)
+    => m Bool
+isTestRun =
+    ((testBankPublicKey, testNotaryPublicKey) ==) <$>
+    (liftA2 (,) (view bankPublicKey) (view notaryPublicKey) <$> getNodeContext)
