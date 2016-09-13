@@ -443,7 +443,7 @@ getMintetteUtxo mId = do
     onJust mintette =
         withResult
             (L.logDebug "Getting utxo")
-            (L.logDebug . sformat ("Corrent utxo is: " % build))
+            (L.logDebug . sformat ("Current utxo is: " % build))
             (handleEither $
              callMintette mintette $ P.call (P.RSCDump P.GetMintetteUtxo))
 
