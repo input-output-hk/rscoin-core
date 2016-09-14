@@ -19,6 +19,7 @@ module RSCoin.Core.Constants
        , rpcTimeout
        , shardDelta
        , shardDivider
+       , maxTxSize
        ) where
 
 import           Data.Binary                (Binary)
@@ -98,3 +99,9 @@ defaultConfigurationPath = (</> defaultConfigurationFileName) <$> configDirector
 
 defaultConfigurationFileName :: IsString s => s
 defaultConfigurationFileName = "deploy-rscoin.cfg"
+
+-- | Maximum size of legal transaction. Size is calculated as length
+-- of inputs + length of outputs. Transactions with bigger size will
+-- be rejected.
+maxTxSize :: Num a => a
+maxTxSize = 50
