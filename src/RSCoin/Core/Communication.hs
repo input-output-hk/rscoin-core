@@ -477,6 +477,9 @@ getMintetteUtxo mId = do
 callNotary :: (WorkMode m, MessagePack a) => P.Client (Either Text a) -> m a
 callNotary = handleEither . handleErrors . P.callNotary
 
+callNotarySafe :: (WorkMode m, MessagePack a) => P.Client (Either Text a) -> m a
+callNotarySafe = handleEither . handleErrors . P.callNotarySafe
+
 allocateMultisignatureAddress
     :: WorkMode m
     => Address
@@ -498,7 +501,7 @@ allocateMultisignatureAddress msAddr partyAddr allocStrat signature mMasterCheck
         allocStrat
         signature
         (pairBuilder <$> mMasterCheck)
-    callNotary $ P.call (P.RSCNotary P.AllocateMultisig)
+    callNotarySafe $ P.call (P.RSCNotary P.AllocateMultisig)
         msAddr partyAddr allocStrat signature mMasterCheck
 
 announceNewPeriodsToNotary
@@ -531,7 +534,7 @@ getTxSignatures :: WorkMode m => Transaction -> Address -> m [(Address, Signatur
 getTxSignatures tx addr = do
     guardTransactionValidity tx
     withSignedResult SignerNotary infoMessage successMessage $
-        callNotary $ P.call (P.RSCNotary P.GetSignatures) tx addr
+        callNotarySafe $ P.call (P.RSCNotary P.GetSignatures) tx addr
   where
     infoMessage =
         L.logDebug $
@@ -553,7 +556,7 @@ pollPendingTransactions
     -> m [Transaction]
 pollPendingTransactions parties =
     withSignedResult SignerNotary infoMessage successMessage $
-    callNotary $ P.call (P.RSCNotary P.PollPendingTransactions) parties
+    callNotarySafe $ P.call (P.RSCNotary P.PollPendingTransactions) parties
   where
     infoMessage =
         L.logDebug $
@@ -594,7 +597,7 @@ publishTxToNotary
 publishTxToNotary tx addr sg = do
     guardTransactionValidity tx
     withSignedResult SignerNotary infoMessage successMessage $
-        callNotary $ P.call (P.RSCNotary P.PublishTransaction) tx addr sg
+        callNotarySafe $ P.call (P.RSCNotary P.PublishTransaction) tx addr sg
   where
     infoMessage =
         L.logDebug $
@@ -616,7 +619,7 @@ queryNotaryMyMSAllocations
     -> m [(MSAddress, AllocationInfo)]
 queryNotaryMyMSAllocations allocAddr =
     withSignedResult SignerNotary infoMessage successMessage $
-    callNotary $ P.call (P.RSCNotary P.QueryMyAllocMS) allocAddr
+    callNotarySafe $ P.call (P.RSCNotary P.QueryMyAllocMS) allocAddr
   where
     infoMessage = L.logDebug "Calling Notary for my MS addresses..."
     successMessage res =

@@ -19,6 +19,7 @@ module RSCoin.Core.Protocol.Methods
        , execMintette
        , execMintetteSafe
        , execNotary
+       , execNotarySafe
        , callBank
        , callBankSafe
        , callExplorer
@@ -26,6 +27,7 @@ module RSCoin.Core.Protocol.Methods
        , callMintette
        , callMintetteSafe
        , callNotary
+       , callNotarySafe
        , unCps) where
 
 import           Control.Lens               (view)
@@ -88,10 +90,13 @@ execBankSafe = (>>=) . callBankSafe
 execMintetteSafe :: MessagePack a => Mintette -> Rpc.Client a -> WithResult a
 execMintetteSafe m = (>>=) . callMintetteSafe m
 
-
 -- | Send request to Notary.
 execNotary :: MessagePack a => Rpc.Client a -> WithResult a
 execNotary = (>>=) . callNotary
+
+-- | Send request to Notary with timeout.
+execNotarySafe :: MessagePack a => Rpc.Client a -> WithResult a
+execNotarySafe = (>>=) . callNotarySafe
 
 -- | Send a request to a Explorer using Continuation passing style (CPS).
 -- Raises an exception if Explorer doesn't respond in rpcTimeout time.
@@ -139,6 +144,11 @@ callMintetteSafe Mintette {..} action =
 
 callNotary :: (MessagePack a, WorkMode m) => Rpc.Client a -> m a
 callNotary action = do
+    nAddr <- view notaryAddr <$> getNodeContext
+    Rpc.execClient nAddr action
+
+callNotarySafe :: (MessagePack a, WorkMode m) => Rpc.Client a -> m a
+callNotarySafe action = do
     nAddr <- view notaryAddr <$> getNodeContext
     Rpc.execClientTimeout rpcTimeout nAddr action
 
