@@ -11,6 +11,7 @@ module RSCoin.Core.Communication
 
          -- * Helpers
        , P.unCps
+       , guardTransactionValidity
 
          -- * Call Bank
          -- ** Local control
@@ -65,7 +66,7 @@ module RSCoin.Core.Communication
 import           Control.Exception          (Exception (..))
 import           Control.Lens               (view)
 import           Control.Monad              (unless, when)
-import           Control.Monad.Catch        (catch, throwM)
+import           Control.Monad.Catch        (MonadThrow (throwM), catch)
 import           Control.Monad.Extra        (unlessM)
 import           Control.Monad.Trans        (MonadIO, liftIO)
 import           Data.Binary                (Binary)
@@ -102,6 +103,7 @@ import qualified RSCoin.Core.Protocol       as P
 import           RSCoin.Core.Strategy       (AllocationAddress, AllocationInfo,
                                              AllocationStrategy, MSAddress,
                                              PartyAddress, TxStrategy)
+import           RSCoin.Core.Transaction    (validateTxPure)
 import           RSCoin.Core.Types          (ActionLog, CheckConfirmation,
                                              CheckConfirmations,
                                              CommitAcknowledgment,
@@ -197,6 +199,11 @@ withSignedResult signer before after action = do
     let pkOwner = signerName signer
     unless (verifyWithSignature pk ws) $ throwM $ BadSignature pkOwner
     wsValue <$ liftIO (after wsValue)
+
+guardTransactionValidity :: MonadThrow m => Transaction -> m ()
+guardTransactionValidity tx =
+    unless (validateTxPure tx) $
+    throwM $ BadRequest "Your transaction is not valid, because TODO"
 
 ---- —————————————————————————————————————————————————————————— ----
 ---- Bank endpoints ——————————————————————————————————————————— ----
@@ -331,9 +338,10 @@ checkNotDoubleSpent
     -> AddrId
     -> [(Address, Signature Transaction)]
     -> m (Either Text CheckConfirmation)
-checkNotDoubleSpent m tx a s =
+checkNotDoubleSpent m tx a s = do
+    guardTransactionValidity tx
     withResult infoMessage (either onError onSuccess) $
-    callMintette m $ P.call (P.RSCMintette P.CheckTx) tx a s
+        callMintette m $ P.call (P.RSCMintette P.CheckTx) tx a s
   where
     infoMessage =
         L.logDebug $ sformat ("Checking addrid (" % build % ") from transaction: " % build) a tx
@@ -350,9 +358,10 @@ checkNotDoubleSpentBatch
     -> Transaction
     -> M.Map AddrId [(Address, Signature Transaction)]
     -> m (M.Map AddrId (Either Text CheckConfirmation))
-checkNotDoubleSpentBatch m tx signatures =
+checkNotDoubleSpentBatch m tx signatures = do
+    guardTransactionValidity tx
     withResult infoMessage onReturn $ handleEither $
-    callMintette m $ P.call (P.RSCMintette P.CheckTxBatch) tx signatures
+        callMintette m $ P.call (P.RSCMintette P.CheckTxBatch) tx signatures
   where
     infoMessage =
         L.logDebug $ sformat ("Checking addrids (" % build
@@ -373,9 +382,10 @@ commitTx
     -> Transaction
     -> CheckConfirmations
     -> m (Either Text CommitAcknowledgment)
-commitTx m tx cc =
+commitTx m tx cc = do
+    guardTransactionValidity tx
     withResult infoMessage (either onError onSuccess) $
-    callMintette m $ P.call (P.RSCMintette P.CommitTx) tx cc
+        callMintette m $ P.call (P.RSCMintette P.CommitTx) tx cc
   where
     infoMessage = L.logDebug $ sformat ("Commit transaction " % build) tx
     onError e = L.logError $ sformat ("Commit tx failed: " % stext) e
@@ -518,9 +528,10 @@ getNotaryPeriod =
 -- for the given address (that implicitly defines addrids ~
 -- transaction inputs) and transaction itself.
 getTxSignatures :: WorkMode m => Transaction -> Address -> m [(Address, Signature Transaction)]
-getTxSignatures tx addr =
+getTxSignatures tx addr = do
+    guardTransactionValidity tx
     withSignedResult SignerNotary infoMessage successMessage $
-    callNotary $ P.call (P.RSCNotary P.GetSignatures) tx addr
+        callNotary $ P.call (P.RSCNotary P.GetSignatures) tx addr
   where
     infoMessage =
         L.logDebug $
@@ -580,9 +591,10 @@ publishTxToNotary
     -> (Address, Signature Transaction)     -- ^ party's public address and signature
                                 -- (made with its secret key)
     -> m [(Address, Signature Transaction)] -- ^ signatures for all parties already signed the transaction
-publishTxToNotary tx addr sg =
+publishTxToNotary tx addr sg = do
+    guardTransactionValidity tx
     withSignedResult SignerNotary infoMessage successMessage $
-    callNotary $ P.call (P.RSCNotary P.PublishTransaction) tx addr sg
+        callNotary $ P.call (P.RSCNotary P.PublishTransaction) tx addr sg
   where
     infoMessage =
         L.logDebug $
