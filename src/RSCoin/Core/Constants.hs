@@ -20,6 +20,7 @@ module RSCoin.Core.Constants
        , shardDelta
        , shardDivider
        , maxTxSize
+       , maxStrategySize
        ) where
 
 import           Data.Binary                (Binary)
@@ -105,3 +106,7 @@ defaultConfigurationFileName = "deploy-rscoin.cfg"
 -- be rejected.
 maxTxSize :: Num a => a
 maxTxSize = 50
+
+-- | Maximum valid size of AllocationStrategy, which is number of parties.
+maxStrategySize :: Num a => a
+maxStrategySize = 10
