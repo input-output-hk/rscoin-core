@@ -18,10 +18,13 @@ import           Data.Maybe            (fromJust, isJust)
 import           Test.Hspec            (Spec, describe)
 import           Test.Hspec.QuickCheck (prop)
 import           Test.QuickCheck       (Arbitrary (arbitrary), Gen,
-                                        NonEmptyList (..), choose, vector)
+                                        NonEmptyList (..), choose, suchThat,
+                                        vector)
 
 import qualified RSCoin.Core           as C
 
+-- | Transaction which is generated according to invariants checked by
+-- `validateTx`.
 newtype TransactionValid = TransactionValid
     { getTr :: C.Transaction
     } deriving (Show)
@@ -36,51 +39,42 @@ genCoinInRange col lo hi = C.Coin col . C.CoinAmount <$> genRationalInRange lo h
 
 instance Arbitrary TransactionValid where
     arbitrary =
-        TransactionValid <$>
-        do trid <- arbitrary :: Gen C.TransactionId
-           inps :: [(Int, C.Coin)] <-
-               map (second abs) . getNonEmpty <$> arbitrary
-           let coins :: C.CoinsMap
-               inputs :: [C.AddrId]
-               (coins,inputs) =
-                   first C.coinsToMap $
-                   unzip $
-                   map
-                       (\(ind,coin) ->
-                             (coin, (trid, ind, coin)))
-                       inps
-               genOutput C.Coin{..} =
-                   (,) <$>
-                   arbitrary <*>
-                   genCoinInRange coinColor 0 (C.getAmount coinAmount)
-           unpaintedOutputsMap <- mapM genOutput coins
-           padCols :: [C.Color] <- getNonEmpty <$> arbitrary
-           let l
-                   :: Num a
-                   => a
-               l = genericLength padCols
-               helper adr cl cn = (adr, C.Coin cl cn)
-           padAddrs <- vector l :: Gen [C.Address]
-           C.Transaction inputs . (M.elems unpaintedOutputsMap ++) <$>
-               case M.lookup 0 unpaintedOutputsMap of
-                   Nothing -> return []
-                   Just (_,v) ->
-                       if null padCols
-                           then return []
-                           else do
-                               let (outpv,inpv) =
-                                       (C.coinAmount v, C.coinAmount $ coins M.! 0)
-                               v' <-
-                                   C.CoinAmount <$>
-                                   genRationalInRange
-                                       0
-                                       (C.getAmount (inpv - outpv))
-                               return $
-                                   zipWith3
-                                       helper
-                                       padAddrs
-                                       padCols
-                                       (repeat (v' / l))
+        TransactionValid <$> suchThat genValidTxExceptSize C.validateTxSize
+
+genValidTxExceptSize :: Gen C.Transaction
+genValidTxExceptSize = do
+    trid <- arbitrary :: Gen C.TransactionId
+    inps :: [(Int, C.Coin)] <- map (second abs) . getNonEmpty <$> arbitrary
+    let coins :: C.CoinsMap
+        inputs :: [C.AddrId]
+        (coins, inputs) =
+            first C.coinsToMap $
+            unzip $ map (\(ind, coin) -> (coin, (trid, ind, coin))) inps
+        genOutput C.Coin {..} =
+            (,) <$> arbitrary <*>
+            genCoinInRange coinColor 0 (C.getAmount coinAmount)
+    unpaintedOutputsMap <- mapM genOutput coins
+    padCols :: [C.Color] <- getNonEmpty <$> arbitrary
+    let l
+            :: Num a
+            => a
+        l = genericLength padCols
+        helper adr cl cn = (adr, C.Coin cl cn)
+    padAddrs <- vector l :: Gen [C.Address]
+    C.Transaction inputs . (M.elems unpaintedOutputsMap ++) <$>
+        case M.lookup 0 unpaintedOutputsMap of
+            Nothing -> return []
+            Just (_, v) ->
+                if null padCols
+                    then return []
+                    else do
+                        let (outpv, inpv) =
+                                (C.coinAmount v, C.coinAmount $ coins M.! 0)
+                        v' <-
+                            C.CoinAmount <$>
+                            genRationalInRange 0 (C.getAmount (inpv - outpv))
+                        return $
+                            zipWith3 helper padAddrs padCols (repeat (v' / l))
 
 spec :: Spec
 spec =
@@ -142,18 +136,20 @@ validateTxCorrectForValid = C.validateTxPure . getTr
 -- * pair the coins in this list with dummy address to serve as output;
 -- * create two different output lists - one with a random coin increased;
 -- * and the other with that same coin decreased;
--- * check that the transaction with decreased output is validated;
+-- * check that the transaction with decreased output is validated
+--   unless its size is too big;
 -- * and that the other is not validated.
 
 validateInputMoreThanOutput :: NonEmptyList C.AddrId -> C.Address -> Bool
 validateInputMoreThanOutput (getNonEmpty -> inputs) adr =
     let outputs = map ((adr, ) . view _3) inputs
         helper [] = ([], [])
-        helper ((a,C.Coin col cn):xs) =
+        helper ((a, C.Coin col cn):xs) =
             ((a, C.Coin col (cn + 1)) : xs, (a, C.Coin col (cn / 2)) : xs)
-        (plus1,minus1) = helper outputs
-        (tx1,tx2) = (C.Transaction inputs plus1, C.Transaction inputs minus1)
-    in C.validateTxPure tx2 && (not $ C.validateTxPure tx1)
+        (plus1, minus1) = helper outputs
+        (tx1, tx2) = (C.Transaction inputs plus1, C.Transaction inputs minus1)
+    in (C.validateTxPure tx2 || not (C.validateTxSize tx2)) &&
+       (not $ C.validateTxPure tx1)
 
 -- | This property does the following:
 -- * generate single addrid (tid, index, Coin cl c) as input and dummy address;

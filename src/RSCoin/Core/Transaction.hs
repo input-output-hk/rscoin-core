@@ -5,6 +5,7 @@
 
 module RSCoin.Core.Transaction
        ( canonizeTx
+       , validateTxSize
        , validateTxPure
        , validateSignature
        , getAmountByAddress
@@ -23,24 +24,33 @@ import           Data.List              (delete, groupBy, nub, sortBy)
 import           Data.Ord               (comparing)
 
 import           RSCoin.Core.Coin       (coinsToMap)
+import           RSCoin.Core.Constants  (maxTxSize)
 import           RSCoin.Core.Crypto     (Signature, hash, verify)
 import           RSCoin.Core.Primitives (AddrId, Address (..), Coin (..),
                                          Color (..), Transaction (..), grey)
+
+validateTxSize :: Transaction -> Bool
+validateTxSize Transaction {..} =
+    length txInputs + length txOutputs <= maxTxSize
 
 -- | Validates that sum of inputs for each color isn't greater than
 -- sum of outputs, and what's left can be painted by grey coins.
 -- Furthermore, the function also checks if the transaction has empty
 -- input and/or output lists, and if any of the coins in either list
--- has a negative or zero value. If any of this happens, the transaction
--- will not be validated.
+-- has a negative or zero value. Another check is transaction size
+-- (length of inputs + length of outputs) which can't be more than
+-- maxTxSize. If any of this happens, the transaction will not be
+-- validated.
 validateTxPure :: Transaction -> Bool
-validateTxPure Transaction{..} =
+validateTxPure tx@Transaction{..} =
     and [ totalInputs >= totalOutputs
         , greyInputs >= greyOutputs + totalUnpaintedSum
         , not $ null txInputs
         , not $ null txOutputs
         , null zeroOrNegInputs
-        , null zeroOrNegOutputs]
+        , null zeroOrNegOutputs
+        , validateTxSize tx
+        ]
   where
     inputs  = coinsToMap $ map (view _3) txInputs
     outputs = coinsToMap $ map snd txOutputs
@@ -67,13 +77,13 @@ validateTxPure Transaction{..} =
 -- `Nothing`.
 
 canonizeTx :: Transaction -> Maybe Transaction
-canonizeTx Transaction{..} =
-    case (txInputs', txOutputs') of
-             (_ : _, _ : _) -> Just $ Transaction txInputs' txOutputs'
-             (_, _)         -> Nothing
+canonizeTx tx@Transaction {..}
+    | null txInputs || null txOutputs = Nothing
+    | not (validateTxSize tx) = Nothing
+    | otherwise = Just $ Transaction txInputsCanonized txOutputsCanonized
   where
-    txInputs' = filter ((> 0) . coinAmount . view _3) txInputs
-    txOutputs' = filter ((> 0) . coinAmount . snd) txOutputs
+    txInputsCanonized = filter ((> 0) . coinAmount . view _3) txInputs
+    txOutputsCanonized = filter ((> 0) . coinAmount . snd) txOutputs
 
 -- | Validates that signature is issued by public key associated with given
 -- address for the transaction.
