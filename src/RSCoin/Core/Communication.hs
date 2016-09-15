@@ -71,6 +71,7 @@ import           Control.Monad.Extra        (unlessM)
 import           Control.Monad.Trans        (MonadIO, liftIO)
 import           Data.Binary                (Binary)
 import qualified Data.Map                   as M
+import           Data.Maybe                 (fromMaybe)
 import           Data.MessagePack           (MessagePack)
 import           Data.Monoid                ((<>))
 import           Data.Text                  (Text, pack)
@@ -79,7 +80,7 @@ import           Data.Typeable              (Typeable)
 import           Formatting                 (build, int, sformat, shown, stext,
                                              (%))
 import qualified Network.MessagePack.Client as MP (RpcError (..))
-import           Safe                       (atMay)
+import           Safe                       (atMay, headMay)
 import           System.Random              (randomRIO)
 
 import           Serokell.Util.Text         (listBuilderJSON,
@@ -218,33 +219,9 @@ sendBankLocalControlRequest request =
         (const $ L.logDebug "Sent control request successfully") $
          callBank $ P.call (P.RSCBank P.LocalControlRequest) request
 
--- getAddresses :: WorkMode m => m AddressToTxStrategyMap
--- getAddresses =
---     withSignedResult
---         SignerBank
---         (L.logDebug "Getting list of addresses")
---         (L.logDebug .
---          sformat ("Successfully got list of addresses " % build) .
---          mapBuilder . M.toList) $
---     callBank $ P.call (P.RSCBank P.GetAddresses)
-
--- TODO: should this method return Maybe HBlock ?
 -- | Given the height/perioud id, retreives block if it's present
-getBlockByHeight :: WorkMode m => PeriodId -> m HBlock
-getBlockByHeight pId =
-    withSignedResult
-        SignerBank
-        infoMessage
-        onSuccess
-        (head <$> callBank (P.call (P.RSCBank P.GetHBlocks) [pId]))
-  where
-    infoMessage = L.logDebug $ sformat ("Getting block with height " % int) pId
-    onSuccess (res :: HBlock) =
-        L.logDebug $
-        sformat
-            ("Successfully got block with height " % int % ": " % build)
-            pId
-            res
+getBlockByHeight :: WorkMode m => PeriodId -> m (Maybe HBlock)
+getBlockByHeight pId = headMay <$> getBlocksByHeight pId pId
 
 -- | Retrieves blockchainHeight from the server
 getBlockchainHeight :: WorkMode m => m PeriodId
@@ -290,7 +267,8 @@ getExplorers =
     callBank $ P.call (P.RSCBank P.GetExplorers)
 
 getGenesisBlock :: WorkMode m => m HBlock
-getGenesisBlock = getBlockByHeight 0
+getGenesisBlock =
+    fromMaybe (error "genesis block can't be fetched") <$> getBlockByHeight 0
 
 getMintettes :: WorkMode m => m Mintettes
 getMintettes =
