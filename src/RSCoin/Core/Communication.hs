@@ -167,12 +167,11 @@ handleEither action = do
         return
         res
 
-withResult :: WorkMode m => IO () -> (a -> IO ()) -> m a -> m a
+withResult :: WorkMode m => m () -> (a -> m ()) -> m a -> m a
 withResult before after action = do
-    liftIO before
+    before
     a <- action
-    liftIO $ after a
-    return a
+    a <$ after a
 
 data Signer
     = SignerBank
@@ -191,14 +190,14 @@ signerKey SignerNotary = view notaryPublicKey <$> getNodeContext
 -- Copy-paste is bad, but I hope this code will be rewritten soon anyway.
 withSignedResult
     :: (Binary a, WorkMode m)
-    => Signer -> IO () -> (a -> IO ()) -> m (WithSignature a) -> m a
+    => Signer -> m () -> (a -> m ()) -> m (WithSignature a) -> m a
 withSignedResult signer before after action = do
-    liftIO before
+    before
     ws@WithSignature {..} <- action
     pk <- signerKey signer
     let pkOwner = signerName signer
     unless (verifyWithSignature pk ws) $ throwM $ BadSignature pkOwner
-    wsValue <$ liftIO (after wsValue)
+    wsValue <$ after wsValue
 
 guardTransactionValidity :: MonadThrow m => Transaction -> m ()
 guardTransactionValidity tx =
@@ -353,7 +352,8 @@ checkNotDoubleSpent m tx a s = do
         L.logDebug $ sformat ("Confirmation: " % build) res
 
 checkNotDoubleSpentBatch
-    :: WorkMode m
+    :: forall m.
+       WorkMode m
     => Mintette
     -> Transaction
     -> M.Map AddrId [(Address, Signature Transaction)]
@@ -368,7 +368,7 @@ checkNotDoubleSpentBatch m tx signatures = do
                               % ") from transaction: " % build)
                              (listBuilderJSON $ M.keys signatures)
                              tx
-    onReturn :: M.Map AddrId (Either Text CheckConfirmation) -> IO ()
+    onReturn :: M.Map AddrId (Either Text CheckConfirmation) -> m ()
     onReturn _ =
         L.logDebug $
             sformat ("Confirmed signatures from transaction: " % build) tx
