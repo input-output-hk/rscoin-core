@@ -3,23 +3,25 @@
 -- | This module contains all constants in rscoin.
 
 module RSCoin.Core.Constants
-        ( configDirectory
-        , defaultAccountsNumber
-        , defaultConfigurationPath
-        , defaultConfigurationFileName
-        , defaultEpochDelta
-        , defaultPort
-        , defaultSecretKeyPath
-        , defaultPeriodDelta
-        , emissionHash
-        , genesisEmissionHash
-        , genesisValue
-        , localhost
-        , periodReward
-        , rpcTimeout
-        , shardDelta
-        , shardDivider
-        ) where
+       ( configDirectory
+       , defaultAccountsNumber
+       , defaultConfigurationPath
+       , defaultConfigurationFileName
+       , defaultEpochDelta
+       , defaultPort
+       , defaultSecretKeyPath
+       , defaultPeriodDelta
+       , emissionHash
+       , genesisEmissionHash
+       , genesisValue
+       , localhost
+       , periodReward
+       , rpcTimeout
+       , shardDelta
+       , shardDivider
+       , maxTxSize
+       , maxStrategySize
+       ) where
 
 import           Data.Binary                (Binary)
 import           Data.String                (IsString)
@@ -98,3 +100,13 @@ defaultConfigurationPath = (</> defaultConfigurationFileName) <$> configDirector
 
 defaultConfigurationFileName :: IsString s => s
 defaultConfigurationFileName = "deploy-rscoin.cfg"
+
+-- | Maximum size of legal transaction. Size is calculated as length
+-- of inputs + length of outputs. Transactions with bigger size will
+-- be rejected.
+maxTxSize :: Num a => a
+maxTxSize = 50
+
+-- | Maximum valid size of AllocationStrategy, which is number of parties.
+maxStrategySize :: Num a => a
+maxStrategySize = 10

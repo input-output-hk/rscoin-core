@@ -5,6 +5,7 @@
 
 module RSCoin.Core.Transaction
        ( canonizeTx
+       , validateTxSize
        , validateTxPure
        , validateSignature
        , getAmountByAddress
@@ -23,32 +24,41 @@ import           Data.List              (delete, groupBy, nub, sortBy)
 import           Data.Ord               (comparing)
 
 import           RSCoin.Core.Coin       (coinsToMap)
+import           RSCoin.Core.Constants  (maxTxSize)
 import           RSCoin.Core.Crypto     (Signature, hash, verify)
 import           RSCoin.Core.Primitives (AddrId, Address (..), Coin (..),
                                          Color (..), Transaction (..), grey)
+
+validateTxSize :: Transaction -> Bool
+validateTxSize Transaction {..} =
+    length txInputs + length txOutputs <= maxTxSize
 
 -- | Validates that sum of inputs for each color isn't greater than
 -- sum of outputs, and what's left can be painted by grey coins.
 -- Furthermore, the function also checks if the transaction has empty
 -- input and/or output lists, and if any of the coins in either list
--- has a negative or zero value. If any of this happens, the transaction
--- will not be validated.
+-- has a negative or zero value. Another check is transaction size
+-- (length of inputs + length of outputs) which can't be more than
+-- maxTxSize. If any of this happens, the transaction will not be
+-- validated.
 validateTxPure :: Transaction -> Bool
-validateTxPure Transaction{..} =
+validateTxPure tx@Transaction{..} =
     and [ totalInputs >= totalOutputs
         , greyInputs >= greyOutputs + totalUnpaintedSum
         , not $ null txInputs
         , not $ null txOutputs
         , null zeroOrNegInputs
-        , null zeroOrNegOutputs]
+        , null zeroOrNegOutputs
+        , validateTxSize tx
+        ]
   where
     inputs  = coinsToMap $ map (view _3) txInputs
     outputs = coinsToMap $ map snd txOutputs
-    totalInputs  = sum $ map getCoin $ M.elems inputs
-    totalOutputs = sum $ map getCoin $ M.elems outputs
-    greyInputs  = getCoin $ M.findWithDefault 0 (getC grey) inputs
-    greyOutputs = getCoin $ M.findWithDefault 0 (getC grey) outputs
-    txColors = delete (getC grey) $ nub $ (M.keys inputs ++ M.keys outputs)
+    totalInputs  = sum $ map coinAmount $ M.elems inputs
+    totalOutputs = sum $ map coinAmount $ M.elems outputs
+    greyInputs  = coinAmount $ M.findWithDefault 0 (getColor grey) inputs
+    greyOutputs = coinAmount $ M.findWithDefault 0 (getColor grey) outputs
+    txColors = delete (getColor grey) $ nub $ (M.keys inputs ++ M.keys outputs)
     foldfoo0 color unp =
         let zero = Coin (Color color) 0
             outputOfThisColor = M.findWithDefault zero color outputs
@@ -57,9 +67,9 @@ validateTxPure Transaction{..} =
            then unp
            else M.insert color (outputOfThisColor - inputOfThisColor) unp
     unpainted = foldr' foldfoo0 M.empty txColors
-    totalUnpaintedSum = sum $ map getCoin $ M.elems unpainted
-    zeroOrNegInputs = filter (<= 0) $ map (getCoin . view _3) txInputs
-    zeroOrNegOutputs = filter (<= 0) $ map (getCoin . snd) txOutputs
+    totalUnpaintedSum = sum $ map coinAmount $ M.elems unpainted
+    zeroOrNegInputs = filter (<= 0) $ map (coinAmount . view _3) txInputs
+    zeroOrNegOutputs = filter (<= 0) $ map (coinAmount . snd) txOutputs
 
 -- | Removes from input/output lists elements whose coins are either
 -- zero or negative, and if either (or both) the input/output lists
@@ -67,13 +77,13 @@ validateTxPure Transaction{..} =
 -- `Nothing`.
 
 canonizeTx :: Transaction -> Maybe Transaction
-canonizeTx Transaction{..} =
-    case (txInputs', txOutputs') of
-             (_ : _, _ : _) -> Just $ Transaction txInputs' txOutputs'
-             (_, _)         -> Nothing
+canonizeTx tx@Transaction {..}
+    | null txInputs || null txOutputs = Nothing
+    | not (validateTxSize tx) = Nothing
+    | otherwise = Just $ Transaction txInputsCanonized txOutputsCanonized
   where
-    txInputs' = filter ((> 0) . getCoin . view _3) txInputs
-    txOutputs' = filter ((> 0) . getCoin . snd) txOutputs
+    txInputsCanonized = filter ((> 0) . coinAmount . view _3) txInputs
+    txOutputsCanonized = filter ((> 0) . coinAmount . snd) txOutputs
 
 -- | Validates that signature is issued by public key associated with given
 -- address for the transaction.
@@ -84,7 +94,7 @@ validateSignature signature (Address pk) = verify pk signature
 -- transaction transfers to address.
 getAmountByAddress :: Address -> Transaction -> M.IntMap Coin
 getAmountByAddress addr Transaction{..} =
-    let pair c = (getC $ getColor c, c) in
+    let pair c = (getColor $ coinColor c, c) in
     M.fromListWith (+) $ map (pair . snd) $ filter ((==) addr . fst) txOutputs
 
 -- | Given address a and transaction returns all addrids that have
@@ -103,8 +113,8 @@ getAddrIdByAddress addr transaction@Transaction{..} =
 chooseAddresses :: [AddrId] -> M.IntMap Coin -> Maybe (M.IntMap ([AddrId], Coin))
 chooseAddresses addrids valueMap =
     chooseOptimal addrids' (view _3) valueMap'
-    where addrids' = filter ((/=0) . getCoin . view _3) addrids
-          valueMap' = M.filter ((/=0) . getCoin) valueMap
+    where addrids' = filter ((/=0) . coinAmount . view _3) addrids
+          valueMap' = M.filter ((/=0) . coinAmount) valueMap
 
 chooseOptimal
     :: forall a.
@@ -128,12 +138,12 @@ chooseOptimal addrids coinGetter valueMap =
     -- color is sorted by coins amount.
     addrList :: [[a]]
     addrList =
-        groupBy ((==) `on` (getColor . coinGetter)) $
-        sortBy (comparing (getColor . coinGetter)) $
-        sortBy (comparing (getCoin . coinGetter)) addrids
+        groupBy ((==) `on` (coinColor . coinGetter)) $
+        sortBy (comparing (coinColor . coinGetter)) $
+        sortBy (comparing (coinAmount . coinGetter)) addrids
     -- addrMap :: M.Map Color [a]
     -- Map from each color to addrids with a coin of that color
-    addrMap = M.fromList $ map ((getC . getColor . coinGetter . head) &&& id) addrList
+    addrMap = M.fromList $ map ((getColor . coinColor . coinGetter . head) &&& id) addrList
     -- chooseHelper :: [a] -> Coin -> ([a], Coin)
     -- This function goes through a list of addrids and calculates the optimal
     chooseHelper list value =
@@ -148,7 +158,7 @@ chooseOptimal addrids coinGetter valueMap =
                    , if newAccum >= value
                      then Just $ newAccum - value
                      else Nothing)
-        in case foldl' foldFoo (Coin (getColor value) 0, [], Nothing) list of
+        in case foldl' foldFoo (Coin (coinColor value) 0, [], Nothing) list of
                     (_,chosenAIds,Just whatsLeft) -> Just (chosenAIds, whatsLeft)
                     (_,_,Nothing) -> Nothing
 

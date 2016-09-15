@@ -29,7 +29,7 @@ import           Serokell.Util.Text  (listBuilderJSON, pairBuilder)
 import           RSCoin.Core.Crypto  (Hash, PublicKey, hash)
 
 newtype Color = Color
-    { getC :: Int
+    { getColor :: Int
     } deriving (Show,Eq,Enum,Real,Ord,Num,Integral,Hashable,Binary,B.Buildable,Generic,Data)
 
 -- | Predefined color. Grey is for uncolored coins,
@@ -44,8 +44,8 @@ newtype CoinAmount = CoinAmount
 -- | Coin is the unit of currency. It has amount and color. In fact,
 -- it's colored coin.
 data Coin = Coin
-    { getColor :: Color
-    , getCoin  :: CoinAmount
+    { coinColor :: !Color
+    , coinAmount  :: !CoinAmount
     } deriving (Show,Eq,Ord,Generic,Data)
 
 reportError :: String -> Coin -> Coin -> a

@@ -14,6 +14,7 @@ module RSCoin.Core.NodeConfig
         , bankPublicKey
         , ctxLoggerName
         , notaryAddr
+        , notaryPublicKey
 
           -- * Other lenses
         , bankHost
@@ -26,6 +27,8 @@ module RSCoin.Core.NodeConfig
         , defaultNodeContextWithLogger
         , testBankPublicKey
         , testBankSecretKey
+        , testNotaryPublicKey
+        , testNotarySecretKey
 
           -- * Functions to read context from configuration file
         , readDeployNodeContext
@@ -36,12 +39,16 @@ module RSCoin.Core.NodeConfig
 
           -- * Type class
         , WithNodeContext (..)
+
+          -- * Extra helpers
+        , isTestRun
         ) where
 
+import           Control.Applicative        (liftA2)
 import           Control.Exception          (Exception, throwIO)
-import           Control.Lens               (Getter, makeLenses, to, (.~), _1,
-                                             _2)
-import           Control.Monad              (when)
+import           Control.Lens               (Getter, makeLenses, to, view, (.~),
+                                             _1, _2)
+import           Control.Monad              (mzero, when)
 import           Control.Monad.Except       (ExceptT)
 import           Control.Monad.Reader       (ReaderT)
 import           Control.Monad.State        (StateT)
@@ -56,7 +63,8 @@ import           Data.Typeable              (Typeable)
 
 import           Formatting                 (build, sformat, stext, (%))
 
-import           Control.TimeWarp.Rpc       (Host, NetworkAddress, Port)
+import           Control.TimeWarp.Rpc       (Host, NetworkAddress, Port,
+                                             ServerT)
 
 import           RSCoin.Core.Constants      (defaultConfigurationPath,
                                              defaultPort, localhost)
@@ -69,10 +77,11 @@ import           RSCoin.Core.Primitives     (Address (..))
 
 
 data NodeContext = NodeContext
-    { _bankAddr      :: NetworkAddress
-    , _notaryAddr    :: NetworkAddress
-    , _bankPublicKey :: PublicKey
-    , _ctxLoggerName :: LoggerName
+    { _bankAddr        :: !NetworkAddress
+    , _notaryAddr      :: !NetworkAddress
+    , _bankPublicKey   :: !PublicKey
+    , _notaryPublicKey :: !PublicKey
+    , _ctxLoggerName   :: !LoggerName
     } deriving (Show)
 
 $(makeLenses ''NodeContext)
@@ -88,6 +97,7 @@ defaultNodeContextWithLogger _ctxLoggerName = NodeContext {..}
     _bankAddr      = (localhost, defaultPort)
     _notaryAddr    = (localhost, 4001)
     _bankPublicKey = testBankPublicKey
+    _notaryPublicKey = testNotaryPublicKey
 
 bankHost :: Getter NodeContext Host
 bankHost = bankAddr . _1
@@ -102,18 +112,37 @@ notaryPort = notaryAddr . _2
 genesisAddress :: Getter NodeContext Address
 genesisAddress = bankPublicKey . to Address
 
--- | This Bank public key should be used only for tests and benchmarks.
+-- | This Bank public key should be used only for tests, benchmarks
+-- and local deployment.
 testBankPublicKey :: PublicKey
 testBankPublicKey = derivePublicKey testBankSecretKey
 
--- | This Bank secret key should be used only for tests and benchmarks.
+-- | This Bank secret key should be used only for tests, benchmarks
+-- and local deployment.
 testBankSecretKey :: SecretKey
-testBankSecretKey = snd $
-                    fromMaybe (error "[FATAL] Failed to construct (pk, sk) pair") $
-                    deterministicKeyGen "default-node-context-keygen-seed"
+testBankSecretKey =
+    snd $
+    fromMaybe (error "[FATAL] Failed to construct (pk, sk) pair") $
+    deterministicKeyGen "default-node-context-keygen-seed"
+
+-- | This Notary public key should be used only for tests, benchmarks
+-- and local deployment.
+testNotaryPublicKey :: PublicKey
+testNotaryPublicKey = derivePublicKey testNotarySecretKey
+
+-- | This Notary secret key should be used only for tests, benchmarks
+-- and local deployment.
+testNotarySecretKey :: SecretKey
+testNotarySecretKey =
+    snd $
+    fromMaybe (error "[FATAL] Failed to construct (pk, sk) pair for Notary") $
+    deterministicKeyGen "dees-negyek-txetnoc-edon-tluafed"
 
 bankPublicKeyPropertyName :: IsString s => s
 bankPublicKeyPropertyName = "bank.publicKey"
+
+notaryPublicKeyPropertyName :: IsString s => s
+notaryPublicKeyPropertyName = "notary.publicKey"
 
 readRequiredDeployContext :: Maybe FilePath -> IO (Config.Config, NodeContext)
 readRequiredDeployContext configPath = do
@@ -139,6 +168,10 @@ data ConfigurationReadException
 
 instance Exception ConfigurationReadException
 
+instance Config.Configured PublicKey where
+    convert (Config.String text) = constructPublicKey text
+    convert _                    = mzero
+
 -- | Reads config from 'defaultConfigurationPath' and converts into 'NodeContext'.
 -- Tries to read also bank public key if it is not provided. If provied then throws
 -- exception in case of mismatch.
@@ -151,6 +184,8 @@ readDeployNodeContext (Just newBankSecretKey) confPath = do
         $ throwIO $ ConfigurationReadException
         $ sformat ("Configuration file doesn't have property: " % stext) bankPublicKeyPropertyName
 
+    cfgNotaryPublicKey <- Config.require deployConfig notaryPublicKeyPropertyName
+
     let Just cfgReadPublicKey = cfgBankPublicKey
     let newBankPublicKey      = derivePublicKey newBankSecretKey
     let pkConfigValue         = Config.String $ sformat build newBankPublicKey
@@ -160,16 +195,20 @@ readDeployNodeContext (Just newBankSecretKey) confPath = do
 
     return obtainedContext
         { _bankPublicKey = newBankPublicKey
+        , _notaryPublicKey = cfgNotaryPublicKey
         }
 readDeployNodeContext Nothing confPath = do
     (deployConfig, obtainedContext) <- readRequiredDeployContext confPath
     cfgBankPublicKey  <- Config.require deployConfig bankPublicKeyPropertyName
+    cfgNotaryPublicKey <- Config.require deployConfig notaryPublicKeyPropertyName
     case constructPublicKey cfgBankPublicKey of
         Nothing -> throwIO
             $ ConfigurationReadException
             $ sformat (stext % " is not a valid public key in config file") cfgBankPublicKey
         Just pk ->
-            return obtainedContext { _bankPublicKey = pk }
+            return obtainedContext { _bankPublicKey = pk
+                                   , _notaryPublicKey = cfgNotaryPublicKey
+                                   }
 
 -- | ContextArgument is passed to functions which need NodeContext. It
 -- aggregates variety of ways to pass context.
@@ -209,3 +248,15 @@ instance (Monad m, WithNodeContext m) =>
 instance (Monad m, WithNodeContext m) =>
          WithNodeContext (ExceptT e m) where
     getNodeContext = lift getNodeContext
+
+instance (Monad m, WithNodeContext m) =>
+         WithNodeContext (ServerT m) where
+    getNodeContext = lift getNodeContext
+
+-- | Returns True iff bank's and notary's keys in context are test keys.
+isTestRun
+    :: (Applicative m, WithNodeContext m)
+    => m Bool
+isTestRun =
+    ((testBankPublicKey, testNotaryPublicKey) ==) <$>
+    (liftA2 (,) (view bankPublicKey) (view notaryPublicKey) <$> getNodeContext)

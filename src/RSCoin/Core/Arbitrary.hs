@@ -135,3 +135,7 @@ instance Arbitrary C.HBlockMetadata where
 instance (Arbitrary a, Arbitrary b) =>
          Arbitrary (C.WithMetadata a b) where
     arbitrary = C.WithMetadata <$> arbitrary <*> arbitrary
+
+instance (Arbitrary a, Binary a) =>
+         Arbitrary (C.WithSignature a) where
+    arbitrary = C.mkWithSignature <$> arbitrary <*> arbitrary

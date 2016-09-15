@@ -31,6 +31,9 @@ module RSCoin.Core.Types
        , NewPeriodData (..)
        , HBlockMetadata (..)
        , WithMetadata (..)
+       , WithSignature (..)
+       , verifyWithSignature
+       , mkWithSignature
        , formatNewPeriodData
        ) where
 
@@ -55,7 +58,8 @@ import           GHC.Generics           (Generic)
 import           Serokell.Util.Text     (listBuilderJSON, listBuilderJSONIndent,
                                          mapBuilder, pairBuilder, tripleBuilder)
 
-import           RSCoin.Core.Crypto     (Hash, PublicKey, Signature)
+import           RSCoin.Core.Crypto     (Hash, PublicKey, SecretKey, Signature,
+                                         sign, verify)
 import           RSCoin.Core.Primitives (AddrId, Address, Transaction,
                                          TransactionId)
 import           RSCoin.Core.Strategy   (AddressToTxStrategyMap)
@@ -304,7 +308,9 @@ data NewPeriodData = NewPeriodData
     , npdNewIdPayload :: !(Maybe NewMintetteIdPayload) -- ^ Data needed for mintette to
                                                        -- restore state if it's Id changes
     , npdDpk          :: !Dpk                          -- ^ Dpk
-    } deriving (Show, Eq)
+    } deriving (Show, Eq, Generic)
+
+instance Binary NewPeriodData
 
 instance B.Buildable (AddrId, Address) where
     build = pairBuilder
@@ -401,6 +407,34 @@ instance (B.Buildable value, B.Buildable metadata) =>
 instance Bifunctor WithMetadata where
     bimap f g WithMetadata{..} = WithMetadata (f wmValue) (g wmMetadata)
 
+-- | WithSignature type represents data signed by some party.
+data WithSignature value = WithSignature
+    { wsValue     :: value
+    , wsSignature :: (Signature value)
+    } deriving (Show, Eq, Generic)
+
+instance (Binary value) =>
+         Binary (WithSignature value)
+
+instance (B.Buildable value) =>
+         B.Buildable (WithSignature value) where
+    build WithSignature {..} =
+        bprint
+            ("Signed value: " % Formatting.build % "\n— signature: " %
+             Formatting.build)
+            wsValue
+            wsSignature
+
+verifyWithSignature
+    :: (Binary a)
+    => PublicKey -> WithSignature a -> Bool
+verifyWithSignature pk WithSignature {..} = verify pk wsSignature wsValue
+
+mkWithSignature
+    :: (Binary a)
+    => SecretKey -> a -> WithSignature a
+mkWithSignature sk val = WithSignature val $ sign sk val
+
 $(deriveSafeCopy 0 'base ''Mintette)
 $(deriveSafeCopy 0 'base ''Explorer)
 $(deriveSafeCopy 0 'base ''CheckConfirmation)
@@ -414,3 +448,4 @@ $(deriveSafeCopy 0 'base ''HBlock)
 $(deriveSafeCopy 0 'base ''NewPeriodData)
 $(deriveSafeCopy 0 'base ''HBlockMetadata)
 $(deriveSafeCopy 0 'base ''WithMetadata)
+$(deriveSafeCopy 0 'base ''WithSignature)

@@ -32,8 +32,8 @@ module RSCoin.Core.Strategy
 
 import           Control.Lens               (makeLenses, traversed, (^..))
 
-import           Data.Binary                (Binary (get, put), getWord8,
-                                             putWord8)
+import           Data.Binary                (Binary)
+import           Data.Binary.Orphans        ()
 import           Data.Hashable              (Hashable)
 import           Data.HashMap.Strict        (HashMap)
 import           Data.HashSet               (HashSet)
@@ -70,20 +70,9 @@ data TxStrategy
     -- out of @length list@, where every signature
     -- should be made by address in list @list@
     | MOfNStrategy Int (S.Set Address)  -- @TODO: replace with HashSet
-    deriving (Show, Eq)
+    deriving (Show, Eq, Generic, Binary)
 
 $(deriveSafeCopy 0 'base ''TxStrategy)
-
-instance Binary TxStrategy where
-    put DefaultStrategy          = putWord8 0 >> put ()
-    put (MOfNStrategy m parties) = putWord8 1 >> put m >> put parties
-
-    get = do
-        i <- getWord8
-        case i of
-            0 -> pure DefaultStrategy
-            1 -> MOfNStrategy <$> get <*> get
-            _ -> error "unknow binary strategy"
 
 instance Buildable TxStrategy where
     build DefaultStrategy        = "DefaultStrategy"
@@ -100,22 +89,10 @@ type AddressToTxStrategyMap = Map Address TxStrategy
 data AllocationAddress
     = TrustAlloc { _address :: Address }  -- ^ PublicKey we trust
     | UserAlloc  { _address :: Address }  -- ^ PublicKey of other User
-    deriving (Eq, Generic, Hashable, Show, Ord)
+    deriving (Eq, Generic, Hashable, Show, Ord, Binary)
 
 $(deriveSafeCopy 0 'base ''AllocationAddress)
 $(makeLenses ''AllocationAddress)
-
-instance Binary AllocationAddress where
-    put (TrustAlloc addr) = putWord8 0 >> put addr
-    put (UserAlloc  addr) = putWord8 1 >> put addr
-
-    get = do
-        ctorTag <- getWord8
-        let ctor = case ctorTag of
-                       0 -> TrustAlloc
-                       1 -> UserAlloc
-                       _ -> error "unknown binary AllocationAddress"
-        ctor <$> get
 
 instance Buildable AllocationAddress where
     build (TrustAlloc addr) = bprint ("TrustA : " % F.build) addr
@@ -130,20 +107,9 @@ data PartyAddress
     | UserParty
         { partyAddress :: Address  -- ^ Same as for 'TrustParty'
         }
-    deriving (Eq, Show, Generic, Hashable)
+    deriving (Eq, Show, Generic, Hashable, Binary)
 
 $(deriveSafeCopy 0 'base ''PartyAddress)
-
-instance Binary PartyAddress where
-    put (TrustParty partyAddr hot) = putWord8 0 >> put partyAddr >> put hot
-    put (UserParty  partyAddr)     = putWord8 1 >> put partyAddr
-
-    get = do
-        i <- getWord8
-        case i of
-            0 -> TrustParty <$> get <*> get
-            1 -> UserParty  <$> get
-            _ -> error "unknown binary AllocationAddress"
 
 instance Buildable PartyAddress where
     build (TrustParty partyAddr hot) =
@@ -156,17 +122,10 @@ instance Buildable PartyAddress where
 data AllocationStrategy = AllocationStrategy
     { _sigNumber  :: Int                        -- ^ Number of required signatures in transaction
     , _allParties :: Set AllocationAddress  -- ^ 'Set' of all parties for this address
-    } deriving (Eq, Show, Generic)
+    } deriving (Eq, Show, Generic, Binary)
 
 $(deriveSafeCopy 0 'base ''AllocationStrategy)
 $(makeLenses ''AllocationStrategy)
-
-instance Binary AllocationStrategy where
-    put AllocationStrategy{..} = do
-        put _sigNumber
-        put (S.toList _allParties)
-
-    get = AllocationStrategy <$> get <*> (S.fromList <$> get)
 
 instance Buildable AllocationStrategy where
     build AllocationStrategy{..} = bprint template
@@ -182,7 +141,7 @@ instance Buildable AllocationStrategy where
 data AllocationInfo = AllocationInfo
     { _allocationStrategy   :: AllocationStrategy
     , _currentConfirmations :: HashMap AllocationAddress Address
-    } deriving (Eq, Show, Generic)
+    } deriving (Eq, Show, Generic, Binary)
 
 $(deriveSafeCopy 0 'base ''AllocationInfo)
 $(makeLenses ''AllocationInfo)

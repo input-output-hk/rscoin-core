@@ -33,26 +33,26 @@ import           Data.Ord               (comparing)
 import           RSCoin.Core.Primitives (Coin (..), Color (..))
 
 onColor :: Coin -> Coin -> Ordering
-onColor = comparing getColor
+onColor = comparing coinColor
 
 onCoin :: Coin -> Coin -> Ordering
-onCoin = comparing getCoin
+onCoin = comparing coinAmount
 
 isPositiveCoin :: Coin -> Bool
-isPositiveCoin = (> 0) . getCoin
+isPositiveCoin = (> 0) . coinAmount
 
 isZeroCoin :: Coin -> Bool
-isZeroCoin = (== 0) . getCoin
+isZeroCoin = (== 0) . coinAmount
 
 isNegativeCoin :: Coin -> Bool
-isNegativeCoin = (< 0) . getCoin
+isNegativeCoin = (< 0) . coinAmount
 
 sameColor :: Coin -> Coin -> Bool
 sameColor a b = EQ == onColor a b
 
 sumCoin :: [Coin] -> Coin
 sumCoin []       = error "sumCoin called with empty coin list"
-sumCoin xs@(c:_) = foldr' (+) c {getCoin = 0} xs
+sumCoin xs@(c:_) = foldr' (+) c {coinAmount = 0} xs
 
 -- | Given a list of arbitrary coins, it sums the coins with the same
 -- color and returns list of coins of distinct color sorted by the
@@ -75,14 +75,14 @@ coinsToList coinsMap = groupCoinsList $ M.elems coinsMap
 
 -- | Translates a list of coins to the map
 coinsToMap :: [Coin] -> CoinsMap
-coinsToMap = M.fromList . map (\c -> (getC . getColor $ c, c)) . groupCoinsList
+coinsToMap = M.fromList . map (\c -> (getColor . coinColor $ c, c)) . groupCoinsList
 
 -- | Checks a consistency of map from color to coin
 coinsMapConsistent :: CoinsMap -> Bool
 coinsMapConsistent coins = all keyValid $ M.keys coins
   where
     keyValid k = let coin = fromJust $ M.lookup k coins
-                 in (getC $ getColor coin) == k
+                 in (getColor $ coinColor coin) == k
 
 -- | Given a empty list of coin maps (map
 mergeCoinsMaps :: [CoinsMap] -> CoinsMap
@@ -94,7 +94,7 @@ mergeCoinsMaps coinMaps =
 coinsMapsEqual :: CoinsMap -> CoinsMap -> Bool
 coinsMapsEqual m1 m2 = dropZeros m1 == dropZeros m2
   where
-    dropZeros = M.filter ((== 0) . getCoin)
+    dropZeros = M.filter ((== 0) . coinAmount)
 
 -- | For each color in the first map, if there exists this color in
 -- the second map, then value in the first map is increased by

@@ -109,6 +109,7 @@ test-suite rscoin-core-test
   main-is:             Test.hs
   other-modules:       Test.RSCoin.Core.AesonSpec
                      , Test.RSCoin.Core.BinarySpec
+                     , Test.RSCoin.Core.CerealSpec
                      , Test.RSCoin.Core.CoinSpec
                      , Test.RSCoin.Core.CryptoSpec
                      , Test.RSCoin.Core.MessagePackSpec
@@ -123,6 +124,7 @@ test-suite rscoin-core-test
                      , async >= 2.0.1
                      , binary >= 0.7.5.0
                      , bytestring >= 0.10.6.0
+                     , cereal
                      , containers >= 0.5.6.2
                      , data-default
                      , either

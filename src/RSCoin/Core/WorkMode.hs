@@ -14,6 +14,7 @@ module RSCoin.Core.WorkMode
 
        , runRealModeBank
        , runRealModeUntrusted
+       , runRealModeWithContext
        , runEmulationMode
        , runEmulationMode_
        ) where
@@ -86,9 +87,9 @@ instance Monad m => WithNodeContext (ContextHolder m) where
 
 type RealMode = ContextHolder MsgPackRpc
 
-runRealModeWithContext :: NodeContext -> RealMode a -> IO a
+runRealModeWithContext :: MonadIO m => NodeContext -> RealMode a -> m a
 runRealModeWithContext nodeContext =
-    runTimedIO . runMsgPackRpc . flip runReaderT nodeContext . getContextHolder
+   liftIO . runTimedIO . runMsgPackRpc . flip runReaderT nodeContext . getContextHolder
 
 runRealModeBank :: ContextArgument -> SecretKey -> RealMode a -> IO a
 runRealModeBank ca bankSecretKey bankAction = do
