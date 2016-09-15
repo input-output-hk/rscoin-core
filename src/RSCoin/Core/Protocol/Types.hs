@@ -77,6 +77,8 @@ data MintetteMethod
     | CheckTxBatch
     | CommitTx
     | GetMintettePeriod
+    | GetExtraBlocks
+    | GetExtraLogs
     deriving (Show)
 
 -- | Requests for multisign transactions.

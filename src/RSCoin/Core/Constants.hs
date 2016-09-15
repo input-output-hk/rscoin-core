@@ -21,6 +21,7 @@ module RSCoin.Core.Constants
        , shardDivider
        , maxTxSize
        , maxStrategySize
+       , maxLBlockSize
        ) where
 
 import           Data.Binary                (Binary)
@@ -110,3 +111,7 @@ maxTxSize = 50
 -- | Maximum valid size of AllocationStrategy, which is number of parties.
 maxStrategySize :: Num a => a
 maxStrategySize = 10
+
+-- | Maximum number of transactions in LBlock.
+maxLBlockSize :: Num a => a
+maxLBlockSize = 100

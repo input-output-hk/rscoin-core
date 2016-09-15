@@ -30,10 +30,14 @@ module RSCoin.Core.Communication
 
          -- * Call Mintette
          -- ** Main methods
+       , actionLogQueryLimit
        , announceNewPeriod
        , checkNotDoubleSpent
        , checkNotDoubleSpentBatch
        , commitTx
+       , getExtraMintetteBlocks
+       , getExtraMintetteLogs
+       , lBlocksQueryLimit
        , sendPeriodFinished
 
          -- ** Simple getters
@@ -109,8 +113,8 @@ import           RSCoin.Core.Types          (ActionLog, CheckConfirmation,
                                              CheckConfirmations,
                                              CommitAcknowledgment,
                                              Explorer (..), Explorers, HBlock,
-                                             HBlockMetadata, Mintette,
-                                             MintetteId, Mintettes,
+                                             HBlockMetadata, LBlock (..),
+                                             Mintette, MintetteId, Mintettes,
                                              NewPeriodData, PeriodId,
                                              PeriodResult, Utxo, WithMetadata,
                                              WithSignature (..),
@@ -370,7 +374,9 @@ commitTx m tx cc = do
     onSuccess _ =
         L.logDebug $ sformat ("Successfully committed transaction " % build) tx
 
-sendPeriodFinished :: WorkMode m => Mintette -> SecretKey -> PeriodId -> m PeriodResult
+sendPeriodFinished
+    :: WorkMode m
+    => Mintette -> SecretKey -> PeriodId -> m PeriodResult
 sendPeriodFinished mintette bankSK pId =
     withResult infoMessage successMessage $
     handleEither $
@@ -381,11 +387,65 @@ sendPeriodFinished mintette bankSK pId =
         L.logDebug $
         sformat ("Send period " % int % " finished to mintette " % build)
             pId mintette
-    successMessage pr =
-        L.logDebug $
+    successMessage =
+        L.logDebug .
         sformat
             ("Received period result from mintette " % build % ": \n" % build)
-            mintette pr
+            mintette
+
+-- | Maximum number of lower-level blocks to be queried from mintette
+-- in a single request.
+lBlocksQueryLimit :: Num a => a
+lBlocksQueryLimit = 20
+
+-- | Maximum number of lower-level blocks to be queried from mintette
+-- in a single request.
+actionLogQueryLimit :: Num a => a
+actionLogQueryLimit = 20
+
+getExtraMintetteBlocks
+    :: WorkMode m
+    => Mintette -> SecretKey -> PeriodId -> (Word, Word) -> m [LBlock]
+getExtraMintetteBlocks mintette bankSK pId range =
+    withResult infoMessage checkResultAndLog $
+    handleEither $
+    callMintette mintette $ P.call (P.RSCMintette P.GetExtraBlocks) signed
+  where
+    signed = mkWithSignature bankSK (pId, range)
+    infoMessage =
+        L.logDebug $
+        sformat
+            ("Requesting extra LBlocks (" % int % ", " % int % ")" % ") from mintette " % build)
+            (fst range)
+            (snd range)
+            mintette
+    checkResultAndLog blocks = do
+        L.logDebug $
+            sformat ("Received extra blocks from mintette " % build) mintette
+        mapM_ checkResult blocks
+    checkResult block =
+        when (null (lbTransactions block)) $
+        throwM $ MethodError "mintette sent LBlock without transactions"
+
+getExtraMintetteLogs
+    :: WorkMode m
+    => Mintette -> SecretKey -> PeriodId -> (Word, Word) -> m ActionLog
+getExtraMintetteLogs mintette bankSK pId range =
+    withResult infoMessage logResult $
+    handleEither $
+    callMintette mintette $ P.call (P.RSCMintette P.GetExtraLogs) signed
+  where
+    signed = mkWithSignature bankSK (pId, range)
+    infoMessage =
+        L.logDebug $
+        sformat
+            ("Requesting extra ActionLog (" % int % ", " % int % ") from mintette " % build)
+            (fst range)
+            (snd range)
+            mintette
+    logResult _ = do
+        L.logDebug $
+            sformat ("Received extra logs from mintette " % build) mintette
 
 getMintetteLogs :: WorkMode m => MintetteId -> PeriodId -> m (Maybe ActionLog)
 getMintetteLogs mId pId = do
