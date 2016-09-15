@@ -613,6 +613,16 @@ removeNotaryCompleteMSAddresses addresses signedAddrs = do
 ---- Explorer endpoints ——————————————————————————————————————— ----
 ---- —————————————————————————————————————————————————————————— ----
 
+-- callExplorer
+--     :: (WorkMode m, MessagePack a)
+--     => Explorer -> P.Client (Either Text a) -> m a
+-- callExplorer e = handleEither . handleErrors . P.callExplorer e
+
+callExplorerSafe
+    :: (WorkMode m, MessagePack a)
+    => Explorer -> P.Client (Either Text a) -> m a
+callExplorerSafe e = handleEither . handleErrors . P.callExplorerSafe e
+
 announceNewBlock
     :: WorkMode m
     => Explorer
@@ -622,7 +632,7 @@ announceNewBlock
     -> m PeriodId
 announceNewBlock explorer bankSK pId blk =
     withResult infoMessage successMessage $
-    P.callExplorer explorer $
+    callExplorerSafe explorer $
     P.call (P.RSCExplorer P.EMNewBlock) signed
   where
     signed = mkWithSignature bankSK (pId, blk)
@@ -653,8 +663,10 @@ getTransactionById
 getTransactionById tId explorer =
     withResult
         (L.logDebug $ sformat ("Getting transaction by id " % build) tId)
-        (\t -> L.logDebug $ sformat
-                   ("Successfully got transaction by id " % build % ": " % build)
-                   tId t)
-        $ P.callExplorerSafe explorer
-        $ P.call (P.RSCExplorer P.EMGetTransaction) tId
+        (\t ->
+              L.logDebug $
+              sformat
+                  ("Successfully got transaction by id " % build % ": " % build)
+                  tId
+                  t) $
+    callExplorerSafe explorer $ P.call (P.RSCExplorer P.EMGetTransaction) tId
