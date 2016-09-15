@@ -64,6 +64,10 @@ instance MessagePack Integer where
         either (const Nothing) (Just . view _3) . decodeOrFail $ BSL.fromStrict b
     fromObject _             = Nothing
 
+instance MessagePack Word where
+    toObject = (toObject :: Integer -> Object) . fromIntegral
+    fromObject = fmap (fromIntegral :: Integer -> Word) . fromObject
+
 instance (Integral a, MessagePack a) => MessagePack (Ratio a) where
     toObject r = toObject (numerator r, denominator r)
     fromObject = fmap (uncurry (%)) . fromObject
@@ -93,6 +97,12 @@ instance MessagePack C.Explorer where
         toObject
             (toObject explorerHost, toObject explorerPort, toObject explorerKey)
     fromObject = fmap (uncurry3 C.Explorer) . fromObject
+
+instance MessagePack C.PeriodResult where
+    toObject C.PeriodResult{..} =
+        toObject
+            (prPeriodId, prBlocks, prActionLog, prBlocksNumber, prActionLogSize)
+    fromObject = fmap (uncurry5 C.PeriodResult) . fromObject
 
 instance MessagePack C.NewPeriodData where
     toObject C.NewPeriodData{..} =

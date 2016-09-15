@@ -22,7 +22,7 @@ module RSCoin.Core.Types
        , ActionLog
        , LBlock (..)
        , LBlockHash (..)
-       , PeriodResult
+       , PeriodResult (..)
        , Dpk
        , Utxo
        , Pset
@@ -237,7 +237,27 @@ instance B.Buildable LBlock where
              "}\n"
 
 -- | PeriodResult is sent by mintette to bank when period finishes.
-type PeriodResult = (PeriodId, [LBlock], ActionLog)
+-- Number of transactions and action log entries is limited, so it's
+-- possible that not all blocks or logs are sent. In this case they
+-- are split into parts. Numbers of parts are included as well.
+data PeriodResult = PeriodResult
+    { prPeriodId      :: !PeriodId
+    , prBlocks        :: ![LBlock]
+    , prActionLog     :: !ActionLog
+    , prBlocksNumber  :: !Word
+    , prActionLogSize :: !Word
+    } deriving (Show, Generic)
+
+instance B.Buildable PeriodResult where
+    -- TODO: add action logs if needed
+    build PeriodResult {..} =
+        bprint template prPeriodId (listBuilderJSON prBlocks) prBlocksNumber
+      where
+        template = "PeriodResult {\n" %
+                   "  period id: " % int % "\n" %
+                   "  blocks: " % build % "\n" %
+                   "  number of blocks: " % int % "\n" %
+                   "}\n"
 
 -- | DPK is a list of signatures which authorizies mintettes for one period
 type Dpk = [(PublicKey, Signature PublicKey)]
@@ -445,6 +465,7 @@ $(deriveSafeCopy 0 'base ''LBlockHash)
 $(deriveSafeCopy 0 'base ''LBlock)
 $(deriveSafeCopy 0 'base ''HBlockHash)
 $(deriveSafeCopy 0 'base ''HBlock)
+$(deriveSafeCopy 0 'base ''PeriodResult)
 $(deriveSafeCopy 0 'base ''NewPeriodData)
 $(deriveSafeCopy 0 'base ''HBlockMetadata)
 $(deriveSafeCopy 0 'base ''WithMetadata)

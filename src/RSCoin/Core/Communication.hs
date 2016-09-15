@@ -381,13 +381,11 @@ sendPeriodFinished mintette bankSK pId =
         L.logDebug $
         sformat ("Send period " % int % " finished to mintette " % build)
             pId mintette
-    successMessage (_,blks,lgs) =
+    successMessage pr =
         L.logDebug $
         sformat
-            ("Received period result from mintette " % build % ": \n" %
-            " Blocks: " % build % "\n" %
-            " Logs: " % build % "\n")
-            mintette (listBuilderJSONIndent 2 blks) lgs
+            ("Received period result from mintette " % build % ": \n" % build)
+            mintette pr
 
 getMintetteLogs :: WorkMode m => MintetteId -> PeriodId -> m (Maybe ActionLog)
 getMintetteLogs mId pId = do
