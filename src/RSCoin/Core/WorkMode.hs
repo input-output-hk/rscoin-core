@@ -14,6 +14,7 @@ module RSCoin.Core.WorkMode
 
        , runRealModeBank
        , runRealModeUntrusted
+       , runRealModeWithContext
        , runEmulationMode
        , runEmulationMode_
        ) where
