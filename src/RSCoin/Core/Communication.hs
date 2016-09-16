@@ -47,7 +47,7 @@ module RSCoin.Core.Communication
 
          -- * Call Notary
        , allocateMultisignatureAddress
-       , announceNewPeriodsToNotary
+       , announceNewPeriodToNotary
        , getNotaryPeriod
        , getTxSignatures
        , pollPendingTransactions
@@ -540,19 +540,19 @@ allocateMultisignatureAddress msAddr partyAddr allocStrat signature mMasterCheck
     callNotarySafe $ P.call (P.RSCNotary P.AllocateMultisig)
         msAddr partyAddr allocStrat signature mMasterCheck
 
-announceNewPeriodsToNotary
+announceNewPeriodToNotary
     :: WorkMode m
     => SecretKey
     -> PeriodId
-    -> [HBlock]
+    -> HBlock
     -> m ()
-announceNewPeriodsToNotary bankSK pIdLast blocks = do
+announceNewPeriodToNotary bankSK pIdLast block = do
     L.logDebug $ sformat
         ("Announce new periods to Notary, hblocks " % build %
          ", latest periodId " % int)
-        blocks
+        block
         pIdLast
-    let signed = mkWithSignature bankSK (pIdLast, blocks)
+    let signed = mkWithSignature bankSK (pIdLast, block)
     callNotary $ P.call (P.RSCNotary P.AnnounceNewPeriodsToNotary) signed
 
 getNotaryPeriod :: WorkMode m => m PeriodId
