@@ -28,6 +28,9 @@ module RSCoin.Core.Communication
        , getStatisticsId
        -- , getAddresses
 
+       -- ** Actionables
+       , addMintetteUsingPermission
+
          -- * Call Mintette
          -- ** Main methods
        , announceNewPeriod
@@ -90,7 +93,7 @@ import           Serokell.Util.Text         (listBuilderJSON,
 import           Control.TimeWarp.Timed     (MonadTimed, MonadTimedError (..))
 
 import           RSCoin.Core.Crypto         (PublicKey, SecretKey, Signature,
-                                             hash)
+                                             hash, derivePublicKey)
 import           RSCoin.Core.Error          (rscExceptionFromException,
                                              rscExceptionToException)
 import           RSCoin.Core.Logging        (WithNamedLogger (..))
@@ -110,6 +113,7 @@ import           RSCoin.Core.Types          (ActionLog, CheckConfirmation,
                                              CommitAcknowledgment,
                                              Explorer (..), Explorers, HBlock,
                                              HBlockMetadata, Mintette,
+                                             mintetteHost, mintettePort,
                                              MintetteId, Mintettes,
                                              NewPeriodData, PeriodId,
                                              PeriodResult, Utxo, WithMetadata,
@@ -285,6 +289,22 @@ getStatisticsId =
         (L.logDebug "Getting statistics id")
         (L.logDebug . sformat ("Statistics id is " % int)) $
     callBank $ P.call (P.RSCBank P.GetStatisticsId)
+
+addMintetteUsingPermission
+    :: WorkMode m
+    => SecretKey
+    -> Mintette
+    -> m ()
+addMintetteUsingPermission mintetteSK mintette = do
+    let host = mintetteHost mintette
+    let port = mintettePort mintette
+    L.logDebug $ sformat
+        ("Adding mintette " % build % " listening on port " % int)
+        host
+        port
+    let signed = mkWithSignature mintetteSK (host, port)
+    let mintettePK = derivePublicKey mintetteSK
+    callBank $ P.call (P.RSCBank P.AddMintetteUsingPermit) mintettePK signed
 
 ---- —————————————————————————————————————————————————————————— ----
 ---- Mintette endpoints ——————————————————————————————————————— ----
