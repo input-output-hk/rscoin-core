@@ -396,12 +396,12 @@ sendPeriodFinished mintette bankSK pId =
 -- | Maximum number of lower-level blocks to be queried from mintette
 -- in a single request.
 lBlocksQueryLimit :: Num a => a
-lBlocksQueryLimit = 20
+lBlocksQueryLimit = 10
 
 -- | Maximum number of lower-level blocks to be queried from mintette
 -- in a single request.
 actionLogQueryLimit :: Num a => a
-actionLogQueryLimit = 20
+actionLogQueryLimit = 100
 
 getExtraMintetteBlocks
     :: WorkMode m
