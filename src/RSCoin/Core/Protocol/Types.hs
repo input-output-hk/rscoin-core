@@ -61,6 +61,7 @@ data BankMethod
     | GetAddresses
     | GetBlockchainHeight
     | GetStatisticsId
+    | AddMintetteUsingPermit
     | GetHBlocks
     | LocalControlRequest -- used for e. g. adding/removing mintettes/explorers
     deriving (Show)
