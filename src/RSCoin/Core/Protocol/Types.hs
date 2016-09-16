@@ -33,6 +33,7 @@ data RSCoinMethod
 -- always supplied with a proof of that (sk sign of tuple of all other args)
 data BankLocalControlRequest =
       AddMintette Mintette PublicKey (Signature (Mintette, PublicKey))
+    | PermitMintette PublicKey (Signature PublicKey)
     | AddExplorer Explorer PeriodId (Signature (Explorer, PeriodId))
     | RemoveMintette String Int (Signature (String, Int))      -- ^ Host/port
     | RemoveExplorer String Int (Signature (String, Int))      -- ^ Host/port
@@ -42,6 +43,7 @@ data BankLocalControlRequest =
 
 checkLocalControlRequest :: PeriodId -> PublicKey -> BankLocalControlRequest -> Bool
 checkLocalControlRequest _ pk (AddMintette m p s)    = verify pk s (m,p)
+checkLocalControlRequest _ pk (PermitMintette p s)   = verify pk s p
 checkLocalControlRequest _ pk (AddExplorer e pid s)  = verify pk s (e,pid)
 checkLocalControlRequest _ pk (RemoveMintette h p s) = verify pk s (h,p)
 checkLocalControlRequest _ pk (RemoveExplorer h p s) = verify pk s (h,p)
