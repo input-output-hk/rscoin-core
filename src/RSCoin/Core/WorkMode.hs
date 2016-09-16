@@ -71,7 +71,7 @@ instance MonadTimed m => MonadTimed (ContextHolder m) where
 
     myThreadId = ContextHolder myThreadId
 
-    killThread = ContextHolder . killThread
+    throwTo tid = ContextHolder . throwTo tid
 
     timeout t = ContextHolder . timeout t . getContextHolder
 
