@@ -126,7 +126,7 @@ import           RSCoin.Core.WorkMode       (WorkMode)
 data CommunicationError
     = ProtocolError Text  -- ^ Message was encoded incorrectly.
     | TimeoutError Text   -- ^ Waiting too long for the reply
-    | MethodError Text    -- ^ Error occured during method execution.
+    | MethodError Text    -- ^ Error occurred during method execution.
     | BadSignature Text   -- ^ Result of method must be signed, but
                           -- signature is bad.
     | BadRequest Text     -- ^ Request is bad for some reason.
@@ -168,7 +168,7 @@ handleEither :: (WorkMode m, MessagePack a) => m (Either Text a) -> m a
 handleEither action = do
     res <- action
     either
-        (throwM . MethodError . sformat ("Error on caller side has ocurred: " % stext))
+        (throwM . MethodError . sformat ("Error on caller side has occurred: " % stext))
         return
         res
 
