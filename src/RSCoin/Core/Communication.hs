@@ -108,7 +108,7 @@ import qualified RSCoin.Core.Protocol       as P
 import           RSCoin.Core.Strategy       (AllocationAddress, AllocationInfo,
                                              AllocationStrategy, MSAddress,
                                              PartyAddress, TxStrategy)
-import           RSCoin.Core.Transaction    (validateTxPure)
+import           RSCoin.Core.Transaction    (validateTxPure, TxVerdict(..))
 import           RSCoin.Core.Types          (ActionLog, CheckConfirmation,
                                              CheckConfirmations,
                                              CommitAcknowledgment,
@@ -205,9 +205,10 @@ withSignedResult signer before after action = do
     wsValue <$ after wsValue
 
 guardTransactionValidity :: MonadThrow m => Transaction -> m ()
-guardTransactionValidity tx =
-    unless (validateTxPure tx) $
-    throwM $ BadRequest "Your transaction is not valid, because TODO"
+guardTransactionValidity tx = case validateTxPure tx of
+    TxValid       -> return ()
+    TxInvalid err -> throwM $ BadRequest $
+      "Your transaction is not valid: " <> err
 
 ---- —————————————————————————————————————————————————————————— ----
 ---- Bank endpoints ——————————————————————————————————————————— ----

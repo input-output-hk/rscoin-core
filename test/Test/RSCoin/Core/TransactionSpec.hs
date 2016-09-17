@@ -19,7 +19,7 @@ import           Test.Hspec            (Spec, describe)
 import           Test.Hspec.QuickCheck (prop)
 import           Test.QuickCheck       (Arbitrary (arbitrary), Gen,
                                         NonEmptyList (..), choose, suchThat,
-                                        vector)
+                                        vector, (==>), Property)
 
 import qualified RSCoin.Core           as C
 
@@ -113,13 +113,13 @@ spec =
       description_chooseSmallerAddressesFirst =
         "uses addrids with smaller amount of money first"
 
-validAfterCanonize :: TransactionValid -> Bool
+validAfterCanonize :: TransactionValid -> Property
 validAfterCanonize (getTr -> tx) =
-    (not $ C.validateTxPure tx) || (C.validateTxPure $ fromJust $ C.canonizeTx tx)
+    C.isValidTx tx ==> C.isValidTx (fromJust (C.canonizeTx tx))
 
 invalidateBadTx :: TransactionValid -> Bool
 invalidateBadTx (getTr -> C.Transaction{..}) =
-    and $ map (not . C.validateTxPure . uncurry C.Transaction) $
+    and $ map (not . C.isValidTx . uncurry C.Transaction) $
     [ (inputs, outputs) | inputs <- [[], negInputs]
                         , outputs <- [[], negOutputs, txOutputs]] ++
     [ (inputs, outputs) | inputs <- [[], negInputs, txInputs]
@@ -129,7 +129,7 @@ invalidateBadTx (getTr -> C.Transaction{..}) =
     negOutputs = map (& _2 %~ negate) txOutputs
 
 validateTxCorrectForValid :: TransactionValid -> Bool
-validateTxCorrectForValid = C.validateTxPure . getTr
+validateTxCorrectForValid = C.isValidTx . getTr
 
 -- | This property does the following:
 -- * generate list of addrids which will serve as input;
@@ -148,8 +148,8 @@ validateInputMoreThanOutput (getNonEmpty -> inputs) adr =
             ((a, C.Coin col (cn + 1)) : xs, (a, C.Coin col (cn / 2)) : xs)
         (plus1, minus1) = helper outputs
         (tx1, tx2) = (C.Transaction inputs plus1, C.Transaction inputs minus1)
-    in (C.validateTxPure tx2 || not (C.validateTxSize tx2)) &&
-       (not $ C.validateTxPure tx1)
+    in (C.isValidTx tx2 || not (C.validateTxSize tx2)) &&
+       (not $ C.isValidTx tx1)
 
 -- | This property does the following:
 -- * generate single addrid (tid, index, Coin cl c) as input and dummy address;
@@ -163,7 +163,7 @@ validateOnlyInputColorsInOutput (t, i, C.Coin col c) adr =
     let nonZero = abs col + 1
         txo = [(adr, C.Coin nonZero (c / 2)),(adr, C.Coin (nonZero + 1) (c / 2))]
     in (c == 0) ||
-       (not $ C.validateTxPure $ C.Transaction [(t,i,C.Coin nonZero c)] txo)
+       (not $ C.isValidTx $ C.Transaction [(t,i,C.Coin nonZero c)] txo)
 
 validateSig :: C.SecretKey -> C.Transaction -> Bool
 validateSig sk tr = C.validateSignature (C.sign sk tr) (C.Address $ C.derivePublicKey sk) tr
