@@ -5,10 +5,11 @@ module Test.RSCoin.Core.BinarySpec
        ) where
 
 import           Data.Binary           (Binary, decode, encode)
+import           Data.Proxy            (Proxy (Proxy))
 import qualified Data.Set              as S
 import           Test.Hspec            (Spec, describe)
 import           Test.Hspec.QuickCheck (prop)
-import           Test.QuickCheck       ((===))
+import           Test.QuickCheck       (Arbitrary, (===))
 
 import qualified RSCoin.Core           as C
 
@@ -16,58 +17,47 @@ spec :: Spec
 spec =
     describe "Binary" $ do
         describe "Identity Properties" $ do
-            prop "Integer" $
-                \(a :: Integer) -> a === binMid a
-            prop "Rational" $
-                \(a :: Rational) -> a === binMid a
-            prop "Either Int Int" $
-                \(a :: Either Int Int) -> a === binMid a
-            prop "Either Int (Either Int Int)" $
-                \(a :: Either Int (Either Int Int)) -> a === binMid a
-            prop "Either (Either Int Int) Int" $
-                \(a :: Either (Either Int Int) Int) -> a === binMid a
-            {-prop "Either MintetteError CheckConfirmation" $
-                \(a :: Either MintetteError C.CheckConfirmation) -> a === binMid a-}
-            prop "Coin" $
-                \(a :: C.Coin) -> a === binMid a
-            prop "Signature" $
-                \(a :: C.Signature Int) -> a === binMid a
-            prop "Address" $
-                \(a :: C.Address) -> a === binMid a
-            prop "Mintette" $
-                \(a :: C.Mintette) -> a === binMid a
-            prop "Hash" $
-                \(a :: C.Hash Int) -> a === binMid a
-            prop "Explorer" $
-                \(a :: C.Explorer) -> a === binMid a
-            {-prop "SmallNewPeriodData" $
-                \(a :: SmallNewPeriodData) -> a === binMid a-}
-            {-prop "SmallLBlock" $
-                \(a :: SmallLBlock) -> a === binMid a-}
-            prop "Transaction" $
-                \(a :: C.Transaction) -> a === binMid a
-            {-prop "SmallTransaction" $
-                \(a :: SmallTransaction) -> a === binMid a-}
-            prop "CheckConfirmation" $
-                \(a :: C.CheckConfirmation) -> a === binMid a
-            prop "CommitAcknowledgment" $
-                \(a :: C.CommitAcknowledgment) -> a === binMid a
-            prop "HBlock" $
-                \(a :: C.HBlock) -> a === binMid a
-            {-prop "SmallHBlock" $
-                \(a :: SmallHBlock) -> a === binMid a-}
-            prop "TxStrategy" $
-                \(a :: C.TxStrategy) -> a === binMid a
-            prop "PartyAddress" $
-                \(a :: C.PartyAddress) -> a === binMid a
-            prop "AllocationAddress" $
-                \(a :: C.AllocationAddress) -> a === binMid a
-            prop "AllocationStrategy" $
-                \(a :: C.AllocationStrategy) -> a === binMid a
-            prop "Set" $
-                \(a :: S.Set Int) -> a === binMid a
-            prop "ActionLogEntry" $
-                \(a :: C.ActionLogEntry) -> a === binMid a
+            makeBinaryProp "Integer" (Proxy :: Proxy Integer)
+            makeBinaryProp "Rational" (Proxy :: Proxy Rational)
+            makeBinaryProp "Either Int Int" (Proxy :: Proxy (Either Int Int))
+            makeBinaryProp "Either Int (Either Int Int)"
+                (Proxy :: Proxy (Either Int (Either Int Int)))
+            makeBinaryProp "Either (Either Int Int) Int"
+                (Proxy :: Proxy (Either (Either Int Int) Int))
+            {-makeBinaryProp "Either MintetteError CheckConfirmation"
+                (Proxy :: Proxy (Either MintetteError C.CheckConfirmation))-}
+            makeBinaryProp "Coin" (Proxy :: Proxy C.Coin)
+            makeBinaryProp "Signature" (Proxy :: Proxy (C.Signature Int))
+            makeBinaryProp "Address" (Proxy :: Proxy C.Address)
+            makeBinaryProp "Mintette" (Proxy :: Proxy C.Mintette)
+            makeBinaryProp "Hash" (Proxy :: Proxy (C.Hash Int))
+            makeBinaryProp "Explorer" (Proxy :: Proxy C.Explorer)
+            {-makeBinaryProp "SmallNewPeriodData"
+                (Proxy :: Proxy SmallNewPeriodData)-}
+            {-makeBinaryProp "SmallLBlock" (Proxy :: Proxy SmallLBlock)-}
+            makeBinaryProp "Transaction" (Proxy :: Proxy C.Transaction)
+            {-makeBinaryProp "SmallTransaction"
+                (Proxy :: Proxy SmallTransaction)-}
+            makeBinaryProp "CheckConfirmation"
+                (Proxy :: Proxy C.CheckConfirmation)
+            makeBinaryProp "CommitAcknowledgment"
+                (Proxy :: Proxy C.CommitAcknowledgment)
+            makeBinaryProp "HBlock" (Proxy :: Proxy C.HBlock)
+            {-makeBinaryProp "SmallHBlock" (Proxy :: Proxy SmallHBlock)-}
+            makeBinaryProp "TxStrategy" (Proxy :: Proxy C.TxStrategy)
+            makeBinaryProp "PartyAddress" (Proxy :: Proxy C.PartyAddress)
+            makeBinaryProp "AllocationAddress"
+                (Proxy :: Proxy C.AllocationAddress)
+            makeBinaryProp "AllocationStrategy"
+                (Proxy :: Proxy C.AllocationStrategy)
+            makeBinaryProp "Set" (Proxy :: Proxy (S.Set Int))
+            makeBinaryProp "ActionLogEntry" (Proxy :: Proxy C.ActionLogEntry)
+
+makeBinaryProp
+    :: forall a.
+       (Show a, Eq a, Binary a, Arbitrary a)
+    => String -> Proxy a -> Spec
+makeBinaryProp s Proxy = prop s $ \(x :: a) -> x === binMid x
 
 binMid :: Binary a => a -> a
 binMid = decode . encode
