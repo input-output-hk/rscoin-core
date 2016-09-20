@@ -113,6 +113,7 @@ import           RSCoin.Core.Types          (ActionLog, CheckConfirmation,
                                              CommitAcknowledgment,
                                              Explorer (..), Explorers, HBlock,
                                              HBlockMetadata, Mintette,
+                                             mintetteHost, mintettePort,
                                              MintetteId, Mintettes,
                                              NewPeriodData, PeriodId,
                                              PeriodResult, Utxo, WithMetadata,
@@ -292,10 +293,11 @@ getStatisticsId =
 addMintetteUsingPermission
     :: WorkMode m
     => SecretKey
-    -> String
-    -> Int
+    -> Mintette
     -> m ()
-addMintetteUsingPermission mintetteSK host port = do
+addMintetteUsingPermission mintetteSK mintette = do
+    let host = mintetteHost mintette
+    let port = mintettePort mintette
     L.logDebug $ sformat
         ("Adding mintette " % build % " listening on port " % int)
         host
