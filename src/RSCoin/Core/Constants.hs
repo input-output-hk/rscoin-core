@@ -110,4 +110,4 @@ maxStrategySize = 10
 
 -- | Maximum number of transactions in LBlock.
 maxLBlockSize :: Num a => a
-maxLBlockSize = 100
+maxLBlockSize = 40
