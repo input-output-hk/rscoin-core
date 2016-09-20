@@ -4,8 +4,10 @@
 -- | Functions related to Transaction
 
 module RSCoin.Core.Transaction
-       ( canonizeTx
+       ( TxVerdict(..)
+       , canonizeTx
        , validateTxSize
+       , isValidTx
        , validateTxPure
        , validateSignature
        , getAmountByAddress
@@ -17,11 +19,14 @@ module RSCoin.Core.Transaction
 import           Control.Arrow          ((&&&))
 import           Control.Exception      (assert)
 import           Control.Lens           (view, _3)
-import           Data.Foldable          (foldl', foldr')
+import           Control.Monad          (when, unless)
+import           Data.Foldable          (foldl')
 import           Data.Function          (on)
 import qualified Data.IntMap.Strict     as M
-import           Data.List              (delete, groupBy, nub, sortBy)
+import           Data.List              (groupBy, sortBy)
+import           Data.Monoid            ((<>))
 import           Data.Ord               (comparing)
+import           Data.Text              (Text)
 
 import           RSCoin.Core.Coin       (coinsToMap)
 import           RSCoin.Core.Constants  (maxTxSize)
@@ -33,43 +38,63 @@ validateTxSize :: Transaction -> Bool
 validateTxSize Transaction {..} =
     length txInputs + length txOutputs <= maxTxSize
 
+-- | Validate a transaction.
+--
+-- See 'validateTxPure' if you want to know why validation fails.
+isValidTx :: Transaction -> Bool
+isValidTx tx = validateTxPure tx == TxValid
+
+data TxVerdict = TxValid | TxInvalid Text
+    deriving (Eq, Show)
+
 -- | Validates that sum of inputs for each color isn't greater than
 -- sum of outputs, and what's left can be painted by grey coins.
 -- Furthermore, the function also checks if the transaction has empty
 -- input and/or output lists, and if any of the coins in either list
 -- has a negative or zero value. Another check is transaction size
 -- (length of inputs + length of outputs) which can't be more than
--- maxTxSize. If any of this happens, the transaction will not be
--- validated.
-validateTxPure :: Transaction -> Bool
+-- maxTxSize. Violation of any of these conditions makes the transaction
+-- invalid.
+validateTxPure :: Transaction -> TxVerdict
 validateTxPure tx@Transaction{..} =
-    and [ totalInputs >= totalOutputs
-        , greyInputs >= greyOutputs + totalUnpaintedSum
-        , not $ null txInputs
-        , not $ null txOutputs
-        , null zeroOrNegInputs
-        , null zeroOrNegOutputs
-        , validateTxSize tx
-        ]
+    either TxInvalid id $ do
+        when (totalOutputs > totalInputs) $
+            Left "outputs' sum is bigger than inputs' sum"
+        when (greyOutputs + greyNeededForPainting > greyInputs) $
+            Left "there's not enough uncolored coins to paint"
+        when (null txInputs) $
+            Left "at least one input is required"
+        when (null txOutputs) $
+            Left "at least one output is required"
+        when (any ((<= 0) . coinAmount) rawInputCoins) $
+            Left "some inputs are zero or negative"
+        when (any ((<= 0) . coinAmount) rawOutputCoins) $
+            Left "some outputs are zero or negative"
+        unless (validateTxSize tx) $
+            Left "maximum transaction size is exceeded"
+        return TxValid
   where
-    inputs  = coinsToMap $ map (view _3) txInputs
-    outputs = coinsToMap $ map snd txOutputs
+    rawInputCoins  = map (view _3) txInputs
+    rawOutputCoins = map snd txOutputs
+    -- Note that there'll be only one input and output of each color,
+    -- since coinsToMap groups coins by color
+    inputs  = coinsToMap rawInputCoins
+    outputs = coinsToMap rawOutputCoins
+    colorAmount color list = maybe 0 coinAmount (M.lookup color list)
     totalInputs  = sum $ map coinAmount $ M.elems inputs
     totalOutputs = sum $ map coinAmount $ M.elems outputs
-    greyInputs  = coinAmount $ M.findWithDefault 0 (getColor grey) inputs
-    greyOutputs = coinAmount $ M.findWithDefault 0 (getColor grey) outputs
-    txColors = delete (getColor grey) $ nub $ (M.keys inputs ++ M.keys outputs)
-    foldfoo0 color unp =
-        let zero = Coin (Color color) 0
-            outputOfThisColor = M.findWithDefault zero color outputs
-            inputOfThisColor = M.findWithDefault zero color inputs
-        in if outputOfThisColor <= inputOfThisColor
-           then unp
-           else M.insert color (outputOfThisColor - inputOfThisColor) unp
-    unpainted = foldr' foldfoo0 M.empty txColors
-    totalUnpaintedSum = sum $ map coinAmount $ M.elems unpainted
-    zeroOrNegInputs = filter (<= 0) $ map (coinAmount . view _3) txInputs
-    zeroOrNegOutputs = filter (<= 0) $ map (coinAmount . snd) txOutputs
+    greyInputs  = colorAmount (getColor grey) inputs
+    greyOutputs = colorAmount (getColor grey) outputs
+    -- Uncolored coins can become colored, but colored coins can't change
+    -- color. E.g. this transaction is invalid:
+    --     [Coin (Color 3) 10, Coin (Color 4) 5] ->
+    --     [Coin (Color 3) 10, Coin (Color 2) 4]
+    -- So, we check whether we have enough uncolored (grey) coins as inputs
+    -- to cover all new colored coins that are created.
+    txColors = M.keys $ M.delete (getColor grey) (inputs <> outputs)
+    extraGreyNeeded color =
+        max 0 (colorAmount color outputs - colorAmount color inputs)
+    greyNeededForPainting = sum (map extraGreyNeeded txColors)
 
 -- | Removes from input/output lists elements whose coins are either
 -- zero or negative, and if either (or both) the input/output lists
