@@ -7,7 +7,6 @@ module RSCoin.Core.Constants
        , defaultAccountsNumber
        , defaultConfigurationPath
        , defaultConfigurationFileName
-       , defaultEpochDelta
        , defaultPort
        , defaultSecretKeyPath
        , defaultPeriodDelta
@@ -59,9 +58,6 @@ defaultPort = 3000
 
 defaultPeriodDelta :: Second
 defaultPeriodDelta = 100
-
-defaultEpochDelta :: Second
-defaultEpochDelta = 5
 
 emissionHash :: Binary t => t -> Hash Transaction
 emissionHash a =
