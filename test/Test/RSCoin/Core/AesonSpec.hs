@@ -22,7 +22,6 @@ spec =
             makeAesonProp "Signature" (Proxy :: Proxy (C.Signature Int))
             makeAesonProp "Address" (Proxy  :: Proxy C.Address)
             makeAesonProp "Hash" (Proxy :: Proxy (C.Hash Word))
-            {-makeAesonProp "SmallHBlock" (Proxy :: Proxy SmallHBlock)-}
             makeAesonProp "PartyAddress" (Proxy :: Proxy C.PartyAddress)
             makeAesonProp "AllocationAddress"
                 (Proxy :: Proxy C.AllocationAddress)

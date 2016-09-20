@@ -5,7 +5,7 @@ module RSCoin.Core
        ) where
 
 import           RSCoin.Core.ActionLog         as Exports
-import           RSCoin.Core.Arbitrary         ()
+import           RSCoin.Core.Arbitrary         as Exports
 import           RSCoin.Core.CheckConfirmation as Exports
 import           RSCoin.Core.Coin              as Exports
 import           RSCoin.Core.Communication     as Exports

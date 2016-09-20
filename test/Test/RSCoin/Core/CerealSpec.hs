@@ -63,7 +63,39 @@ spec = do
             makeSafeCopyProp "Integer" (Proxy :: Proxy Integer)
             makeSafeCopyProp "Rational" (Proxy :: Proxy Rational)
             makeSafeCopyProp "Either Int Int" (Proxy :: Proxy (Either Int Int))
-            makeSafeCopyProp "HBlock" (Proxy :: Proxy C.HBlock)
+            makeSafeCopyProp "Hash" (Proxy :: Proxy (C.Hash Int))
+            {-makeSafeCopyProp "Mintette" (Proxy :: Proxy C.Mintette)
+            makeSafeCopyProp "Explorer" (Proxy :: Proxy C.Explorer)
+            makeSafeCopyProp "CheckConfirmation"
+                (Proxy :: Proxy C.CheckConfirmation)
+            makeSafeCopyProp "CommitAcknowledgment"
+                (Proxy :: Proxy C.CommitAcknowledgment)
+            makeSafeCopyProp "ActionLogEntry"
+                (Proxy :: Proxy C.SmallActionLogEntry)-}
+            --makeSafeCopyProp "LBlock" (Proxy :: Proxy C.SmallLBlock)
+            --makeSafeCopyProp "HBlock" (Proxy :: Proxy C.SmallHBlock)
+            makeSafeCopyProp "PeriodResult" (Proxy :: Proxy C.PeriodResult)
+            makeSafeCopyProp "NewPeriodData"
+                (Proxy :: Proxy C.SmallNewPeriodData)
+            makeSafeCopyProp "HBlockMetada" (Proxy :: Proxy C.HBlockMetadata)
+            makeSafeCopyProp "WithMetadata"
+                (Proxy :: Proxy (C.WithMetadata Int Int))
+            makeSafeCopyProp "WithSignature"
+                (Proxy :: Proxy (C.WithSignature Int))
+            makeSafeCopyProp "TxStrategy" (Proxy :: Proxy C.TxStrategy)
+            makeSafeCopyProp "ALlocationAddress"
+                (Proxy :: Proxy C.AllocationAddress)
+            makeSafeCopyProp "PartyAddress" (Proxy :: Proxy C.PartyAddress)
+            makeSafeCopyProp "AllocationStrategy"
+                (Proxy :: Proxy C.AllocationStrategy)
+            makeSafeCopyProp "AllocationInfo" (Proxy :: Proxy C.AllocationInfo)
+            makeSafeCopyProp "SecretKey" (Proxy :: Proxy C.SecretKey)
+            makeSafeCopyProp "PublicKey" (Proxy :: Proxy C.PublicKey)
+            makeSafeCopyProp "Address" (Proxy :: Proxy C.Address)
+            makeSafeCopyProp "Color" (Proxy :: Proxy C.Color)
+            makeSafeCopyProp "CoinAmount" (Proxy :: Proxy C.CoinAmount)
+            makeSafeCopyProp "Coin" (Proxy :: Proxy C.Coin)
+            makeSafeCopyProp "Transaction" (Proxy :: Proxy C.SmallTransaction)
 
 makeCerealProp
     :: forall a.

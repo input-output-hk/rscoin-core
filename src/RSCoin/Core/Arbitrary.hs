@@ -1,11 +1,21 @@
+{-# LANGUAGE TemplateHaskell #-}
+
 -- | Arbitrary instances for core datatypes
-module RSCoin.Core.Arbitrary () where
+module RSCoin.Core.Arbitrary
+       ( SmallActionLogEntry
+       , SmallHBlock
+       , SmallLBlock
+       , SmallNewPeriodData
+       , SmallTransaction
+       ) where
 
 import           Data.Binary               (Binary)
 import           Data.List                 ()
 import qualified Data.Map                  as M
+import           Data.MessagePack          (MessagePack (..))
+import           Data.SafeCopy             (base, deriveSafeCopy)
 import           Test.QuickCheck           (Arbitrary (arbitrary), Gen,
-                                            Positive (..), choose, oneof)
+                                            Positive (..), choose, oneof, scale)
 import           Test.QuickCheck.Instances ()
 
 import qualified RSCoin.Core.Crypto        as C
@@ -13,6 +23,21 @@ import qualified RSCoin.Core.Primitives    as C
 import qualified RSCoin.Core.Protocol      as C
 import qualified RSCoin.Core.Strategy      as C
 import qualified RSCoin.Core.Types         as C
+
+makeSmall :: Gen a -> Gen a
+makeSmall = scale f
+  where
+    -- f = (round . (sqrt :: Double -> Double) . realToFrac . (`div` 3))
+    f 0 = 0
+    f 1 = 1
+    f 2 = 2
+    f 3 = 3
+    f 4 = 3
+    f n
+      | n < 0 = n
+      | otherwise =
+          (round . (sqrt :: Double -> Double) . realToFrac . (`div` 3)) n
+
 
 instance Arbitrary C.CoinAmount where
     arbitrary = C.CoinAmount . abs <$> arbitrary
@@ -50,14 +75,35 @@ instance Arbitrary C.Address where
 instance Arbitrary C.Transaction where
     arbitrary = C.Transaction <$> arbitrary <*> arbitrary
 
+newtype SmallTransaction =
+    SmallTransaction C.Transaction
+    deriving (Binary,MessagePack,Show,Eq)
+
+instance Arbitrary SmallTransaction where
+    arbitrary = SmallTransaction <$> makeSmall arbitrary
+
 instance Arbitrary C.LBlock where
     arbitrary =
         C.LBlock <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
+
+newtype SmallLBlock =
+    SmallLBlock C.LBlock
+    deriving (MessagePack,Show,Eq)
+
+instance Arbitrary SmallLBlock where
+    arbitrary = SmallLBlock <$> makeSmall arbitrary
 
 instance Arbitrary C.HBlock where
     arbitrary =
         C.HBlock <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*>
         pure M.empty
+
+newtype SmallHBlock =
+    SmallHBlock C.HBlock
+    deriving (Binary,MessagePack,Show,Eq)
+
+instance Arbitrary SmallHBlock where
+    arbitrary = SmallHBlock <$> makeSmall arbitrary
 
 instance Arbitrary C.CheckConfirmation where
     arbitrary =
@@ -77,6 +123,15 @@ instance Arbitrary C.TxStrategy where
       where gen' = do ls <- arbitrary
                       flip (,) ls <$> choose (1, length ls)
 
+instance Arbitrary C.PeriodResult where
+    arbitrary =
+        C.PeriodResult
+        <$> arbitrary
+        <*> arbitrary
+        <*> arbitrary
+        <*> arbitrary
+        <*> arbitrary
+
 instance Arbitrary C.NewPeriodData where
     arbitrary =
         C.NewPeriodData
@@ -85,6 +140,13 @@ instance Arbitrary C.NewPeriodData where
         <*> arbitrary
         <*> arbitrary
         <*> arbitrary
+
+newtype SmallNewPeriodData =
+    SmallNewPeriodData C.NewPeriodData
+    deriving (Binary,MessagePack,Show,Eq)
+
+instance Arbitrary SmallNewPeriodData where
+    arbitrary = SmallNewPeriodData <$> makeSmall arbitrary
 
 instance Arbitrary C.AllocationAddress where
     arbitrary = oneof [ C.TrustAlloc <$> arbitrary
@@ -108,23 +170,15 @@ instance Arbitrary C.ActionLogEntry where
                       , C.CloseEpochEntry <$> arbitrary
                       ]
 
-{-instance Arbitrary [(C.Color, C.Coin)] where
-    arbitrary = do
-        list <- arbitrary :: Gen [(C.Color, NonNegative Rational)]
-        return $ map (\(col,NonNegative rt) -> (col, C.Coin col rt)) list
+instance Arbitrary SmallActionLogEntry where
+    arbitrary = SmallActionLogEntry <$> makeSmall arbitrary
 
-instance Arbitrary C.CoinsMap where
-    arbitrary = do
-        list <- arbitrary
-        return $ M.fromListWith (+) list
-
---this instance isn't working at the moment, causes an error.
--}
-
+newtype SmallActionLogEntry =
+    SmallActionLogEntry C.ActionLogEntry
+    deriving (MessagePack,Show,Eq)
 
 instance Arbitrary C.BankLocalControlRequest where
     arbitrary = oneof [ C.AddMintette <$> arbitrary <*> arbitrary <*> arbitrary
-                      , C.PermitMintette <$> arbitrary <*> arbitrary
                       , C.AddExplorer <$> arbitrary <*> arbitrary <*> arbitrary
                       , C.RemoveMintette <$> arbitrary <*> arbitrary <*> arbitrary
                       , C.RemoveExplorer <$> arbitrary <*> arbitrary <*> arbitrary
@@ -140,3 +194,9 @@ instance (Arbitrary a, Arbitrary b) =>
 instance (Arbitrary a, Binary a) =>
          Arbitrary (C.WithSignature a) where
     arbitrary = C.mkWithSignature <$> arbitrary <*> arbitrary
+
+$(deriveSafeCopy 0 'base ''SmallLBlock)
+$(deriveSafeCopy 0 'base ''SmallHBlock)
+$(deriveSafeCopy 0 'base ''SmallNewPeriodData)
+$(deriveSafeCopy 0 'base ''SmallTransaction)
+$(deriveSafeCopy 0 'base ''SmallActionLogEntry)

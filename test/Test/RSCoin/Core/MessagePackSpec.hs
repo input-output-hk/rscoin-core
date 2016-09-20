@@ -11,52 +11,9 @@ import qualified Data.Set              as S
 import           Data.Proxy            (Proxy (Proxy))
 import           Test.Hspec            (Spec, describe)
 import           Test.Hspec.QuickCheck (prop)
-import           Test.QuickCheck       (Arbitrary (arbitrary), Gen, scale,
-                                        (===))
+import           Test.QuickCheck       (Arbitrary, (===))
 
 import qualified RSCoin.Core           as C
-
-makeSmall :: Gen a -> Gen a
-makeSmall = scale f
-  where
-    -- f = (round . (sqrt :: Double -> Double) . realToFrac . (`div` 3))
-    f 0 = 0
-    f 1 = 1
-    f 2 = 2
-    f 3 = 3
-    f 4 = 3
-    f n
-      | n < 0 = n
-      | otherwise =
-          (round . (sqrt :: Double -> Double) . realToFrac . (`div` 3)) n
-
-newtype SmallLBlock =
-    SmallLBlock C.LBlock
-    deriving (MessagePack,Show,Eq)
-
-instance Arbitrary SmallLBlock where
-    arbitrary = SmallLBlock <$> makeSmall arbitrary
-
-newtype SmallHBlock =
-    SmallHBlock C.HBlock
-    deriving (MessagePack,Show,Eq)
-
-instance Arbitrary SmallHBlock where
-    arbitrary = SmallHBlock <$> makeSmall arbitrary
-
-newtype SmallNewPeriodData =
-    SmallNewPeriodData C.NewPeriodData
-    deriving (MessagePack,Show,Eq)
-
-instance Arbitrary SmallNewPeriodData where
-    arbitrary = SmallNewPeriodData <$> makeSmall arbitrary
-
-newtype SmallTransaction =
-    SmallTransaction C.Transaction
-    deriving (MessagePack,Show,Eq)
-
-instance Arbitrary SmallTransaction where
-    arbitrary = SmallTransaction <$> makeSmall arbitrary
 
 spec :: Spec
 spec =
@@ -78,17 +35,18 @@ spec =
             makeMsgPackProp "Explorer" (Proxy :: Proxy C.Explorer)
             {-makeMsgPackProp "NewPeriodData" (Proxy :: Proxy C.NewPeriodData)-}
             makeMsgPackProp "SmallNewPeriodData"
-                (Proxy :: Proxy SmallNewPeriodData)
+                (Proxy :: Proxy C.SmallNewPeriodData)
             {-makeMsgPackProp "LBlock" (Proxy :: Proxy C.LBlock)-}
-            makeMsgPackProp "SmallLBlock" (Proxy :: Proxy SmallLBlock)
+            makeMsgPackProp "SmallLBlock" (Proxy :: Proxy C.SmallLBlock)
             {-makeMsgPackProp "Transaction" (Proxy :: Proxy C.Transaction)-}
-            makeMsgPackProp "SmallTransaction" (Proxy :: Proxy SmallTransaction)
+            makeMsgPackProp "SmallTransaction"
+                (Proxy :: Proxy C.SmallTransaction)
             makeMsgPackProp "CheckConfirmation"
                 (Proxy :: Proxy C.CheckConfirmation)
             makeMsgPackProp "CommitAcknowledgment"
                 (Proxy :: Proxy C.CommitAcknowledgment)
             {-makeMsgPackProp "HBlock" (Proxy :: Proxy C.HBlock)-}
-            makeMsgPackProp "SmallHBlock" (Proxy :: Proxy SmallHBlock)
+            makeMsgPackProp "SmallHBlock" (Proxy :: Proxy C.SmallHBlock)
             makeMsgPackProp "TxStrategy" (Proxy :: Proxy C.TxStrategy)
             makeMsgPackProp "PartyAddress" (Proxy :: Proxy C.PartyAddress)
             makeMsgPackProp "AllocationAddress"

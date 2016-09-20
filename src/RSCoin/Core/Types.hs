@@ -246,7 +246,7 @@ data PeriodResult = PeriodResult
     , prActionLog     :: !ActionLog
     , prBlocksNumber  :: !Word
     , prActionLogSize :: !Word
-    } deriving (Show, Generic)
+    } deriving (Show, Eq, Generic)
 
 instance B.Buildable PeriodResult where
     -- TODO: add action logs if needed

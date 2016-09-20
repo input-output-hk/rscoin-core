@@ -6,7 +6,6 @@ module Test.RSCoin.Core.BinarySpec
 
 import           Data.Binary           (Binary, decode, encode)
 import           Data.Proxy            (Proxy (Proxy))
-import qualified Data.Set              as S
 import           Test.Hspec            (Spec, describe)
 import           Test.Hspec.QuickCheck (prop)
 import           Test.QuickCheck       (Arbitrary, (===))
@@ -32,25 +31,23 @@ spec =
             makeBinaryProp "Mintette" (Proxy :: Proxy C.Mintette)
             makeBinaryProp "Hash" (Proxy :: Proxy (C.Hash Int))
             makeBinaryProp "Explorer" (Proxy :: Proxy C.Explorer)
-            {-makeBinaryProp "SmallNewPeriodData"
-                (Proxy :: Proxy SmallNewPeriodData)-}
-            {-makeBinaryProp "SmallLBlock" (Proxy :: Proxy SmallLBlock)-}
-            makeBinaryProp "Transaction" (Proxy :: Proxy C.Transaction)
-            {-makeBinaryProp "SmallTransaction"
-                (Proxy :: Proxy SmallTransaction)-}
+            makeBinaryProp "SmallNewPeriodData"
+                (Proxy :: Proxy C.SmallNewPeriodData)
+            {-makeBinaryProp "Transaction" (Proxy :: Proxy C.Transaction)-}
+            makeBinaryProp "SmallTransaction"
+                (Proxy :: Proxy C.SmallTransaction)
             makeBinaryProp "CheckConfirmation"
                 (Proxy :: Proxy C.CheckConfirmation)
             makeBinaryProp "CommitAcknowledgment"
                 (Proxy :: Proxy C.CommitAcknowledgment)
-            makeBinaryProp "HBlock" (Proxy :: Proxy C.HBlock)
-            {-makeBinaryProp "SmallHBlock" (Proxy :: Proxy SmallHBlock)-}
+            {-makeBinaryProp "HBlock" (Proxy :: Proxy C.HBlock)-}
+            makeBinaryProp "SmallHBlock" (Proxy :: Proxy C.SmallHBlock)
             makeBinaryProp "TxStrategy" (Proxy :: Proxy C.TxStrategy)
             makeBinaryProp "PartyAddress" (Proxy :: Proxy C.PartyAddress)
             makeBinaryProp "AllocationAddress"
                 (Proxy :: Proxy C.AllocationAddress)
             makeBinaryProp "AllocationStrategy"
                 (Proxy :: Proxy C.AllocationStrategy)
-            makeBinaryProp "Set" (Proxy :: Proxy (S.Set Int))
             makeBinaryProp "ActionLogEntry" (Proxy :: Proxy C.ActionLogEntry)
 
 makeBinaryProp
