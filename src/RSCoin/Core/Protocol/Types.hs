@@ -76,6 +76,8 @@ data ExplorerMethod
 data MintetteMethod
     = PeriodFinished
     | AnnounceNewPeriod
+    | AnnounceExtraUtxo
+    | AnnounceExtraAddresses
     | CheckTx
     | CheckTxBatch
     | CommitTx

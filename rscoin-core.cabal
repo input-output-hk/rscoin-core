@@ -81,6 +81,7 @@ library
                      , safecopy
                      , serokell-core
                      , scientific
+                     , split
                      , stm >= 2.4.4
                      , template-haskell
                      , text >= 1.2.2.0

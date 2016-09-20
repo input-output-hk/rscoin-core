@@ -77,6 +77,8 @@ import           Control.Monad.Catch        (MonadThrow (throwM), catch)
 import           Control.Monad.Extra        (unlessM)
 import           Control.Monad.Trans        (MonadIO, liftIO)
 import           Data.Binary                (Binary)
+import qualified Data.HashMap.Strict        as HM
+import           Data.List.Split            (chunksOf)
 import qualified Data.Map                   as M
 import           Data.Maybe                 (fromMaybe)
 import           Data.MessagePack           (MessagePack)
@@ -104,16 +106,16 @@ import           RSCoin.Core.NodeConfig     (WithNodeContext (getNodeContext),
                                              bankPublicKey, isTestRun, notaryPublicKey)
 import           RSCoin.Core.Primitives     (AddrId, Address, Transaction, TransactionId)
 import qualified RSCoin.Core.Protocol       as P
-import           RSCoin.Core.Strategy       (AllocationAddress, AllocationInfo,
-                                             AllocationStrategy, MSAddress, PartyAddress,
-                                             TxStrategy)
+import           RSCoin.Core.Strategy       (AddressToTxStrategyMap, AllocationAddress,
+                                             AllocationInfo, AllocationStrategy,
+                                             MSAddress, PartyAddress, TxStrategy)
 import           RSCoin.Core.Transaction    (TxVerdict (..), validateTxPure)
 import           RSCoin.Core.Types          (ActionLog, CheckConfirmation,
                                              CheckConfirmations, CommitAcknowledgment,
                                              Explorer (..), Explorers, HBlock,
                                              HBlockMetadata, LBlock (..),
                                              Mintette (mintetteHost, mintettePort),
-                                             MintetteId, Mintettes, NewPeriodData,
+                                             MintetteId, Mintettes, NewPeriodData (..),
                                              PeriodId, PeriodResult, Utxo, WithMetadata,
                                              WithSignature (..), mkWithSignature,
                                              verifyWithSignature)
@@ -311,20 +313,80 @@ addMintetteUsingPermission mintetteSK mintette = do
 callMintette :: (WorkMode m, MessagePack a) => Mintette -> P.Client a -> m a
 callMintette m = handleErrors . P.callMintetteSafe m
 
+splitNewPeriodData :: NewPeriodData -> (NewPeriodData, [Utxo], [AddressToTxStrategyMap])
+splitNewPeriodData npd@NewPeriodData {npdNewIdPayload = Nothing, ..} = (npd, mempty, mempty)
+splitNewPeriodData NewPeriodData { npdNewIdPayload = Just (mintetteId, utxo, addresses)
+                                 , ..
+                                 } =
+    let utxos = splitUtxo utxo
+        addressesMaps = splitAddresses addresses
+    in ( NewPeriodData
+         { npdNewIdPayload = Just (mintetteId, head utxos, head addressesMaps)
+         , ..
+         }
+       , tail utxos
+       , tail addressesMaps)
+
+splitUtxo :: Utxo -> [Utxo]
+splitUtxo utxo
+    | HM.size utxo <= limit = [utxo]
+    | otherwise = map HM.fromList . chunksOf limit . HM.toList $ utxo
+  where
+    limit = 100
+
+splitAddresses :: AddressToTxStrategyMap -> [AddressToTxStrategyMap]
+splitAddresses addresses
+    | M.size addresses <= limit = [addresses]
+    | otherwise = map M.fromList . chunksOf limit . M.toList $ addresses
+  where
+    limit = 100
+
 announceNewPeriod
     :: WorkMode m
     => Mintette -> SecretKey -> NewPeriodData -> m ()
 announceNewPeriod mintette bankSK npd = do
     L.logDebug $
         sformat
-            ("Announce new period to mintette " % build % ", new period data " %
+            ("Announcing new period to mintette " % build % ", new period data " %
              build)
             mintette
             npd
-    let signed = mkWithSignature bankSK npd
-    handleEither $
+    let (npdSmall, utxos, addresses) = splitNewPeriodData npd
+    let signed = mkWithSignature bankSK npdSmall
+    () <-
+        handleEither $
         callMintette mintette $
         P.call (P.RSCMintette P.AnnounceNewPeriod) signed
+    mapM_ (announceExtraUtxo mintette bankSK) utxos
+    mapM_ (announceExtraAddresses mintette bankSK) addresses
+
+announceExtraUtxo
+    :: WorkMode m
+    => Mintette -> SecretKey -> Utxo -> m ()
+announceExtraUtxo mintette bankSK utxo = do
+    L.logDebug $
+        sformat
+            ("Announcing extra utxo to mintette " % build % ": " % build)
+            mintette
+            utxo
+    let signed = mkWithSignature bankSK utxo
+    handleEither $
+        callMintette mintette $
+        P.call (P.RSCMintette P.AnnounceExtraUtxo) signed
+
+announceExtraAddresses
+    :: WorkMode m
+    => Mintette -> SecretKey -> AddressToTxStrategyMap -> m ()
+announceExtraAddresses mintette bankSK addresses = do
+    L.logDebug $
+        sformat
+            ("Announcing extra addresses to mintette " % build % ": " % build)
+            mintette
+            addresses
+    let signed = mkWithSignature bankSK addresses
+    handleEither $
+        callMintette mintette $
+        P.call (P.RSCMintette P.AnnounceExtraAddresses) signed
 
 checkNotDoubleSpent
     :: WorkMode m
