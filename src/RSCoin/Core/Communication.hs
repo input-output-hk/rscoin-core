@@ -28,6 +28,9 @@ module RSCoin.Core.Communication
        , getStatisticsId
        -- , getAddresses
 
+       -- ** Actionables
+       , addMintetteUsingPermission
+
          -- * Call Mintette
          -- ** Main methods
        , actionLogQueryLimit
@@ -81,44 +84,38 @@ import           Data.Monoid                ((<>))
 import           Data.Text                  (Text, pack)
 import qualified Data.Text.Buildable        as B (Buildable (build))
 import           Data.Typeable              (Typeable)
-import           Formatting                 (build, int, sformat, shown, stext,
-                                             (%))
+import           Formatting                 (build, int, sformat, shown, stext, (%))
 import qualified Network.MessagePack.Client as MP (RpcError (..))
 import           Safe                       (atMay, headMay)
 import           System.Random              (randomRIO)
 
-import           Serokell.Util.Text         (listBuilderJSON,
-                                             listBuilderJSONIndent, mapBuilder,
-                                             pairBuilder, show')
+import           Serokell.Util.Text         (listBuilderJSON, listBuilderJSONIndent,
+                                             mapBuilder, pairBuilder, show')
 
 import           Control.TimeWarp.Timed     (MonadTimed, MonadTimedError (..))
 
 import           RSCoin.Core.Crypto         (PublicKey, SecretKey, Signature,
-                                             hash)
+                                             derivePublicKey, hash)
 import           RSCoin.Core.Error          (rscExceptionFromException,
                                              rscExceptionToException)
 import           RSCoin.Core.Logging        (WithNamedLogger (..))
 import qualified RSCoin.Core.Logging        as L
 import           RSCoin.Core.NodeConfig     (WithNodeContext (getNodeContext),
-                                             bankPublicKey, isTestRun,
-                                             notaryPublicKey)
-import           RSCoin.Core.Primitives     (AddrId, Address, Transaction,
-                                             TransactionId)
+                                             bankPublicKey, isTestRun, notaryPublicKey)
+import           RSCoin.Core.Primitives     (AddrId, Address, Transaction, TransactionId)
 import qualified RSCoin.Core.Protocol       as P
 import           RSCoin.Core.Strategy       (AllocationAddress, AllocationInfo,
-                                             AllocationStrategy, MSAddress,
-                                             PartyAddress, TxStrategy)
-import           RSCoin.Core.Transaction    (validateTxPure, TxVerdict(..))
+                                             AllocationStrategy, MSAddress, PartyAddress,
+                                             TxStrategy)
+import           RSCoin.Core.Transaction    (TxVerdict (..), validateTxPure)
 import           RSCoin.Core.Types          (ActionLog, CheckConfirmation,
-                                             CheckConfirmations,
-                                             CommitAcknowledgment,
+                                             CheckConfirmations, CommitAcknowledgment,
                                              Explorer (..), Explorers, HBlock,
                                              HBlockMetadata, LBlock (..),
-                                             Mintette, MintetteId, Mintettes,
-                                             NewPeriodData, PeriodId,
-                                             PeriodResult, Utxo, WithMetadata,
-                                             WithSignature (..),
-                                             mkWithSignature,
+                                             Mintette (mintetteHost, mintettePort),
+                                             MintetteId, Mintettes, NewPeriodData,
+                                             PeriodId, PeriodResult, Utxo, WithMetadata,
+                                             WithSignature (..), mkWithSignature,
                                              verifyWithSignature)
 import           RSCoin.Core.WorkMode       (WorkMode)
 
@@ -290,6 +287,22 @@ getStatisticsId =
         (L.logDebug "Getting statistics id")
         (L.logDebug . sformat ("Statistics id is " % int)) $
     callBank $ P.call (P.RSCBank P.GetStatisticsId)
+
+addMintetteUsingPermission
+    :: WorkMode m
+    => SecretKey
+    -> Mintette
+    -> m ()
+addMintetteUsingPermission mintetteSK mintette = do
+    let host = mintetteHost mintette
+    let port = mintettePort mintette
+    L.logDebug $ sformat
+        ("Adding mintette " % build % " listening on port " % int)
+        host
+        port
+    let signed = mkWithSignature mintetteSK (host, port)
+    let mintettePK = derivePublicKey mintetteSK
+    callBank $ P.call (P.RSCBank P.AddMintetteUsingPermit) mintettePK signed
 
 ---- —————————————————————————————————————————————————————————— ----
 ---- Mintette endpoints ——————————————————————————————————————— ----
