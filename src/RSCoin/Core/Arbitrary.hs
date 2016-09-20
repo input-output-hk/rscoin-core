@@ -124,6 +124,7 @@ instance Arbitrary C.CoinsMap where
 
 instance Arbitrary C.BankLocalControlRequest where
     arbitrary = oneof [ C.AddMintette <$> arbitrary <*> arbitrary <*> arbitrary
+                      , C.PermitMintette <$> arbitrary <*> arbitrary
                       , C.AddExplorer <$> arbitrary <*> arbitrary <*> arbitrary
                       , C.RemoveMintette <$> arbitrary <*> arbitrary <*> arbitrary
                       , C.RemoveExplorer <$> arbitrary <*> arbitrary <*> arbitrary

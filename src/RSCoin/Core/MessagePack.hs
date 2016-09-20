@@ -202,20 +202,22 @@ instance MessagePack C.ActionLogEntry where
 
 instance MessagePack C.BankLocalControlRequest where
     toObject (C.AddMintette m pk sig)         = toObj (0, (m, pk, sig))
-    toObject (C.AddExplorer e pid sig)        = toObj (1, (e, pid, sig))
-    toObject (C.RemoveMintette host port sig) = toObj (2, (host, port, sig))
-    toObject (C.RemoveExplorer host port sig) = toObj (3, (host, port, sig))
-    toObject (C.FinishPeriod sig)             = toObj (4, sig)
-    toObject (C.DumpStatistics sId sig)       = toObj (5, (sId, sig))
+    toObject (C.PermitMintette pk sig)        = toObj (1, (pk, sig))
+    toObject (C.AddExplorer e pid sig)        = toObj (2, (e, pid, sig))
+    toObject (C.RemoveMintette host port sig) = toObj (3, (host, port, sig))
+    toObject (C.RemoveExplorer host port sig) = toObj (4, (host, port, sig))
+    toObject (C.FinishPeriod sig)             = toObj (5, sig)
+    toObject (C.DumpStatistics sId sig)       = toObj (6, (sId, sig))
     fromObject obj = do
         (i,payload) <- fromObject obj
         case (i :: Int) of
             0 -> uncurry3 C.AddMintette <$> fromObject payload
-            1 -> uncurry3 C.AddExplorer <$> fromObject payload
-            2 -> uncurry3 C.RemoveMintette <$> fromObject payload
-            3 -> uncurry3 C.RemoveExplorer <$> fromObject payload
-            4 -> C.FinishPeriod <$> fromObject payload
-            5 -> uncurry2 C.DumpStatistics <$> fromObject payload
+            1 -> uncurry2 C.PermitMintette <$> fromObject payload
+            2 -> uncurry3 C.AddExplorer <$> fromObject payload
+            3 -> uncurry3 C.RemoveMintette <$> fromObject payload
+            4 -> uncurry3 C.RemoveExplorer <$> fromObject payload
+            5 -> C.FinishPeriod <$> fromObject payload
+            6 -> uncurry2 C.DumpStatistics <$> fromObject payload
             _ -> Nothing
 
 instance MessagePack C.HBlockMetadata where
