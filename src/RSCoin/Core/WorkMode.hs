@@ -27,7 +27,7 @@ import           Control.Monad.Trans      (MonadIO (liftIO))
 import           System.Random            (StdGen, getStdGen)
 
 import           Control.TimeWarp.Logging (WithNamedLogger (..))
-import           Control.TimeWarp.Rpc     (Delays, MonadRpc, MsgPackRpc,
+import           Control.TimeWarp.Rpc     (DelaysSpecifier (..), MonadRpc, MsgPackRpc,
                                            PureRpc, runMsgPackRpc, runPureRpc,
                                            runPureRpc_)
 import           Control.TimeWarp.Timed   (MonadTimed (..), runTimedIO, ThreadId)
@@ -90,17 +90,21 @@ runRealModeUntrusted logName ca nodeAction = do
 
 type EmulationMode = ContextHolder (PureRpc IO)
 
-runEmulationMode :: MonadIO m => Maybe StdGen -> Delays -> EmulationMode a -> m a
+runEmulationMode ::
+    (MonadIO m, DelaysSpecifier delays) =>
+    Maybe StdGen -> delays -> EmulationMode a -> m a
 runEmulationMode genMaybe delays (flip runReaderT defaultNodeContext .
                                   getContextHolder -> action) =
     liftIO . join $
-    runPureRpc <$> getGen genMaybe <*> pure delays <*> pure action
+    runPureRpc <$> getGen genMaybe <*> pure (toDelays delays) <*> pure action
 
-runEmulationMode_ :: MonadIO m => Maybe StdGen -> Delays -> EmulationMode () -> m ()
+runEmulationMode_ ::
+    (MonadIO m, DelaysSpecifier delays) =>
+    Maybe StdGen -> delays -> EmulationMode () -> m ()
 runEmulationMode_ genMaybe delays (flip runReaderT defaultNodeContext .
                                    getContextHolder -> action) =
     liftIO . join $
-    runPureRpc_ <$> getGen genMaybe <*> pure delays <*> pure action
+    runPureRpc_ <$> getGen genMaybe <*> pure (toDelays delays) <*> pure action
 
 getGen :: Maybe StdGen -> IO StdGen
 getGen = maybe getStdGen pure
