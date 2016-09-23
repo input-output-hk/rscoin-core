@@ -41,4 +41,4 @@ makeAesonProp s Proxy = prop s $ \(x :: a) -> x === aesonMid x
 aesonMid :: (ToJSON a, FromJSON a) => a -> a
 aesonMid = maybe err id . decode . encode
   where
-    err = error "[aesonMid] Failed decoding"
+    err = error "[AesonSpec] Failed JSON decoding"
