@@ -108,14 +108,14 @@ library
 
 test-suite rscoin-core-test
   main-is:             Test.hs
-  other-modules:       Test.RSCoin.Core.AesonSpec
-                     , Test.RSCoin.Core.BinarySpec
-                     , Test.RSCoin.Core.CerealSpec
-                     , Test.RSCoin.Core.CoinSpec
+  other-modules:       Test.RSCoin.Core.CoinSpec
                      , Test.RSCoin.Core.CryptoSpec
-                     , Test.RSCoin.Core.MessagePackSpec
+                     , Test.RSCoin.Core.Identity.AesonSpec
+                     , Test.RSCoin.Core.Identity.BinarySpec
+                     , Test.RSCoin.Core.Identity.CerealSpec
+                     , Test.RSCoin.Core.Identity.MessagePackSpec
+                     , Test.RSCoin.Core.Identity.ShowReadSpec
                      , Test.RSCoin.Core.OwnersSpec
-                     , Test.RSCoin.Core.ShowReadSpec
                      , Test.RSCoin.Core.TransactionSpec
 
                      , Spec

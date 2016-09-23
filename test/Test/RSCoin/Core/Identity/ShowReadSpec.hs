@@ -1,6 +1,6 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module Test.RSCoin.Core.ShowReadSpec
+module Test.RSCoin.Core.Identity.ShowReadSpec
        ( spec
        ) where
 

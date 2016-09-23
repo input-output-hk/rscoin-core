@@ -3,10 +3,14 @@
 -- | Arbitrary instances for core datatypes
 module RSCoin.Core.Arbitrary
        ( SmallActionLogEntry
+       , SmallAllocationInfo
+       , SmallAllocationStrategy
        , SmallHBlock
        , SmallLBlock
        , SmallNewPeriodData
+       , SmallPeriodResult
        , SmallTransaction
+       , SmallTxStrategy
        ) where
 
 import           Data.Binary               (Binary)
@@ -107,11 +111,18 @@ instance Arbitrary SmallHBlock where
 
 instance Arbitrary C.CheckConfirmation where
     arbitrary =
-        C.CheckConfirmation <$> arbitrary <*> arbitrary <*> arbitrary <*>
-        (abs <$> arbitrary)
+        C.CheckConfirmation
+        <$> arbitrary
+        <*> arbitrary
+        <*> arbitrary
+        <*> (abs <$> arbitrary)
 
 instance Arbitrary C.CommitAcknowledgment where
-    arbitrary = C.CommitAcknowledgment <$> arbitrary <*> arbitrary <*> arbitrary
+    arbitrary =
+        C.CommitAcknowledgment
+        <$> arbitrary
+        <*> arbitrary
+        <*> arbitrary
 
 instance (Binary a, Arbitrary a) =>
          Arbitrary (C.Signature a) where
@@ -123,6 +134,13 @@ instance Arbitrary C.TxStrategy where
       where gen' = do ls <- arbitrary
                       flip (,) ls <$> choose (1, length ls)
 
+newtype SmallTxStrategy =
+    SmallTxStrategy C.TxStrategy
+    deriving (MessagePack,Binary,Show,Eq)
+
+instance Arbitrary SmallTxStrategy where
+    arbitrary = SmallTxStrategy <$> makeSmall arbitrary
+
 instance Arbitrary C.PeriodResult where
     arbitrary =
         C.PeriodResult
@@ -131,6 +149,13 @@ instance Arbitrary C.PeriodResult where
         <*> arbitrary
         <*> arbitrary
         <*> arbitrary
+
+newtype SmallPeriodResult =
+    SmallPeriodResult C.PeriodResult
+    deriving (Show,Eq)
+
+instance Arbitrary SmallPeriodResult where
+    arbitrary = SmallPeriodResult <$> makeSmall arbitrary
 
 instance Arbitrary C.NewPeriodData where
     arbitrary =
@@ -161,8 +186,22 @@ instance Arbitrary C.PartyAddress where
 instance Arbitrary C.AllocationStrategy where
     arbitrary = C.AllocationStrategy <$> arbitrary <*> arbitrary
 
+newtype SmallAllocationStrategy =
+    SmallAllocationStrategy C.AllocationStrategy
+    deriving (MessagePack,Binary,Show, Eq)
+
+instance Arbitrary SmallAllocationStrategy where
+    arbitrary = SmallAllocationStrategy <$> makeSmall arbitrary
+
 instance Arbitrary C.AllocationInfo where
     arbitrary = C.AllocationInfo <$> arbitrary <*> arbitrary
+
+newtype SmallAllocationInfo =
+    SmallAllocationInfo C.AllocationInfo
+    deriving (MessagePack,Show, Eq)
+
+instance Arbitrary SmallAllocationInfo where
+    arbitrary = SmallAllocationInfo <$> makeSmall arbitrary
 
 instance Arbitrary C.ActionLogEntry where
     arbitrary = oneof [ C.QueryEntry <$> arbitrary
@@ -170,12 +209,12 @@ instance Arbitrary C.ActionLogEntry where
                       , C.CloseEpochEntry <$> arbitrary
                       ]
 
-instance Arbitrary SmallActionLogEntry where
-    arbitrary = SmallActionLogEntry <$> makeSmall arbitrary
-
 newtype SmallActionLogEntry =
     SmallActionLogEntry C.ActionLogEntry
-    deriving (MessagePack,Show,Eq)
+    deriving (Binary,MessagePack,Show,Eq)
+
+instance Arbitrary SmallActionLogEntry where
+    arbitrary = SmallActionLogEntry <$> makeSmall arbitrary
 
 instance Arbitrary C.BankLocalControlRequest where
     arbitrary = oneof [ C.AddMintette <$> arbitrary <*> arbitrary <*> arbitrary
@@ -195,8 +234,13 @@ instance (Arbitrary a, Binary a) =>
          Arbitrary (C.WithSignature a) where
     arbitrary = C.mkWithSignature <$> arbitrary <*> arbitrary
 
+
+
+$(deriveSafeCopy 0 'base ''SmallActionLogEntry)
+$(deriveSafeCopy 0 'base ''SmallAllocationInfo)
 $(deriveSafeCopy 0 'base ''SmallLBlock)
 $(deriveSafeCopy 0 'base ''SmallHBlock)
 $(deriveSafeCopy 0 'base ''SmallNewPeriodData)
 $(deriveSafeCopy 0 'base ''SmallTransaction)
-$(deriveSafeCopy 0 'base ''SmallActionLogEntry)
+$(deriveSafeCopy 0 'base ''SmallTxStrategy)
+$(deriveSafeCopy 0 'base ''SmallPeriodResult)
