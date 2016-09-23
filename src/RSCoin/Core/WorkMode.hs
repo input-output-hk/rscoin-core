@@ -16,7 +16,6 @@ module RSCoin.Core.WorkMode
        , runRealModeUntrusted
        , runRealModeWithContext
        , runEmulationMode
-       , runEmulationMode_
        ) where
 
 import           Control.Lens             (view, (%~), iso)
@@ -28,8 +27,7 @@ import           System.Random            (StdGen, getStdGen)
 
 import           Control.TimeWarp.Logging (WithNamedLogger (..))
 import           Control.TimeWarp.Rpc     (DelaysSpecifier (..), MonadRpc, MsgPackRpc,
-                                           PureRpc, runMsgPackRpc, runPureRpc,
-                                           runPureRpc_)
+                                           PureRpc, runMsgPackRpc, runPureRpc)
 import           Control.TimeWarp.Timed   (MonadTimed (..), runTimedIO, ThreadId)
 
 import           RSCoin.Core.Crypto       (SecretKey)
@@ -97,14 +95,6 @@ runEmulationMode genMaybe delays (flip runReaderT defaultNodeContext .
                                   getContextHolder -> action) =
     liftIO . join $
     runPureRpc <$> getGen genMaybe <*> pure (toDelays delays) <*> pure action
-
-runEmulationMode_ ::
-    (MonadIO m, DelaysSpecifier delays) =>
-    Maybe StdGen -> delays -> EmulationMode () -> m ()
-runEmulationMode_ genMaybe delays (flip runReaderT defaultNodeContext .
-                                   getContextHolder -> action) =
-    liftIO . join $
-    runPureRpc_ <$> getGen genMaybe <*> pure (toDelays delays) <*> pure action
 
 getGen :: Maybe StdGen -> IO StdGen
 getGen = maybe getStdGen pure
