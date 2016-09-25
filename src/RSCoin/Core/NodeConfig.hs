@@ -12,7 +12,6 @@ module RSCoin.Core.NodeConfig
           -- * 'NodeContext' lenses
         , bankAddr
         , bankPublicKey
-        , ctxLoggerName
         , notaryAddr
         , notaryPublicKey
 
@@ -24,7 +23,6 @@ module RSCoin.Core.NodeConfig
 
           -- * Hardcoded constants for tests and benchmarks
         , defaultNodeContext
-        , defaultNodeContextWithLogger
         , testBankPublicKey
         , testBankSecretKey
         , testNotaryPublicKey
@@ -46,7 +44,7 @@ module RSCoin.Core.NodeConfig
 
 import           Control.Applicative        (liftA2)
 import           Control.Exception          (Exception, throwIO)
-import           Control.Lens               (Getter, makeLenses, to, view, (.~),
+import           Control.Lens               (Getter, makeLenses, to, view,
                                              _1, _2)
 import           Control.Monad              (mzero, when)
 import           Control.Monad.Except       (ExceptT)
@@ -72,7 +70,6 @@ import           RSCoin.Core.Crypto.Signing (PublicKey, SecretKey,
                                              constructPublicKey,
                                              derivePublicKey,
                                              deterministicKeyGen)
-import           RSCoin.Core.Logging        (LoggerName, nakedLoggerName)
 import           RSCoin.Core.Primitives     (Address (..))
 
 
@@ -81,18 +78,13 @@ data NodeContext = NodeContext
     , _notaryAddr      :: !NetworkAddress
     , _bankPublicKey   :: !PublicKey
     , _notaryPublicKey :: !PublicKey
-    , _ctxLoggerName   :: !LoggerName
     } deriving (Show)
 
 $(makeLenses ''NodeContext)
 
 -- | Default node context for local deployment.
 defaultNodeContext :: NodeContext
-defaultNodeContext = defaultNodeContextWithLogger nakedLoggerName
-
--- | Default node context for local deployment with given logger name.
-defaultNodeContextWithLogger :: LoggerName -> NodeContext
-defaultNodeContextWithLogger _ctxLoggerName = NodeContext {..}
+defaultNodeContext = NodeContext {..}
   where
     _bankAddr      = (localhost, defaultPort)
     _notaryAddr    = (localhost, 4001)
@@ -219,20 +211,15 @@ data ContextArgument
     | CADefault                  -- ^ Default context will be used.
     deriving (Show)
 
-mkNodeContext :: LoggerName
-              -> Maybe SecretKey
+mkNodeContext :: Maybe SecretKey
               -> ContextArgument
               -> IO NodeContext
-mkNodeContext loggerName sk ca =
-    (ctxLoggerName .~ loggerName $) <$> mkNodeContextDo sk ca
-
-mkNodeContextDo :: Maybe SecretKey -> ContextArgument -> IO NodeContext
-mkNodeContextDo _ (CAExisting ctx) = pure ctx
-mkNodeContextDo bankSecretKey CADefaultLocation =
+mkNodeContext _ (CAExisting ctx) = pure ctx
+mkNodeContext bankSecretKey CADefaultLocation =
     readDeployNodeContext bankSecretKey Nothing
-mkNodeContextDo bankSecretKey (CACustomLocation p) =
+mkNodeContext bankSecretKey (CACustomLocation p) =
     readDeployNodeContext bankSecretKey (Just p)
-mkNodeContextDo _ CADefault = pure defaultNodeContext
+mkNodeContext _ CADefault = pure defaultNodeContext
 
 class WithNodeContext m where
     getNodeContext :: m NodeContext
