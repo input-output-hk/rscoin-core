@@ -24,7 +24,8 @@ import           Control.Monad.Reader     (ReaderT, ask, runReaderT)
 import           Control.Monad.Trans      (MonadIO (liftIO))
 import           System.Random            (StdGen, getStdGen)
 
-import           Control.TimeWarp.Logging (WithNamedLogger (..), setLoggerName)
+import           Control.TimeWarp.Logging (WithNamedLogger (..), setLoggerName,
+                                           usingLoggerName, LoggerNameBox)
 import           Control.TimeWarp.Rpc     (DelaysSpecifier (..), MonadRpc, MsgPackRpc,
                                            PureRpc, runMsgPackRpc, runPureRpc)
 import           Control.TimeWarp.Timed   (MonadTimed (..), runTimedIO, ThreadId)
@@ -63,11 +64,11 @@ type instance ThreadId (ContextHolder m) = ThreadId m
 instance Monad m => WithNodeContext (ContextHolder m) where
     getNodeContext = ContextHolder ask
 
-type RealMode = ContextHolder MsgPackRpc
+type RealMode = ContextHolder (LoggerNameBox MsgPackRpc)
 
 runRealModeWithContext :: MonadIO m => NodeContext -> RealMode a -> m a
 runRealModeWithContext nodeContext =
-   liftIO . runTimedIO . runMsgPackRpc . setLoggerName nakedLoggerName
+   liftIO . runTimedIO . runMsgPackRpc . usingLoggerName nakedLoggerName
           . flip runReaderT nodeContext . getContextHolder
 
 runRealModeBank :: ContextArgument -> SecretKey -> RealMode a -> IO a

@@ -21,9 +21,9 @@ module RSCoin.Core.Logging
        , userLoggerName
        ) where
 
-import           Control.TimeWarp.Logging  hiding (initLogging)
-import qualified Control.TimeWarp.Logging      as L (initLogging)
-import qualified Control.TimeWarp.Timed.TimedT as T (defaultLoggerName)
+import           Control.TimeWarp.Logging  hiding        (initLogging)
+import qualified Control.TimeWarp.Logging      as L      (initLogging)
+import qualified Control.TimeWarp.Timed.TimedT as TimedT (defaultLoggerName)
 
 initLogging :: Severity -> IO ()
 initLogging = L.initLogging predefinedLoggers
