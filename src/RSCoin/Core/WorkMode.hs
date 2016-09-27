@@ -68,7 +68,7 @@ type RealMode = ContextHolder (LoggerNameBox MsgPackRpc)
 
 runRealModeWithContext :: MonadIO m => NodeContext -> RealMode a -> m a
 runRealModeWithContext nodeContext =
-   liftIO . runTimedIO . runMsgPackRpc . usingLoggerName nakedLoggerName
+   liftIO . runMsgPackRpc . usingLoggerName nakedLoggerName
           . flip runReaderT nodeContext . getContextHolder
 
 runRealModeBank :: ContextArgument -> SecretKey -> RealMode a -> IO a
