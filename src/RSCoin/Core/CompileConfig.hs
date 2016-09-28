@@ -10,9 +10,9 @@ module RSCoin.Core.CompileConfig
     ) where
 
 import qualified Data.Aeson.TH          as A
-import           Data.FileEmbed         (embedStringFile, makeRelativeToProject)
+import           Data.ByteString        (ByteString)
+import           Data.FileEmbed         (embedFile, makeRelativeToProject)
 import           Data.Maybe             (fromMaybe)
-import           Data.String            (IsString)
 import           Data.Yaml              (decode)
 
 import           Serokell.Aeson.Options (defaultOptions)
@@ -25,8 +25,8 @@ data RSCoinConfig = RSCoinConfig
 
 $(A.deriveJSON defaultOptions ''RSCoinConfig)
 
-rscoinConfigStr :: IsString s => s
-rscoinConfigStr = $(makeRelativeToProject "rscoin.yaml" >>= embedStringFile)
+rscoinConfigStr :: ByteString
+rscoinConfigStr = $(makeRelativeToProject "rscoin.yaml" >>= embedFile)
 
 -- | Reading configuration from `rscoin.yaml` file and return it in data type.
 rscoinConfig :: RSCoinConfig
