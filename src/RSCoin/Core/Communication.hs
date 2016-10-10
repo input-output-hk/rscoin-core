@@ -239,7 +239,7 @@ getBlockchainHeight =
 -- | Maximum number of higher-level blocks to be queried in a single
 -- request.
 blocksQueryLimit :: Num a => a
-blocksQueryLimit = 20
+blocksQueryLimit = 100
 
 getBlocksByHeight :: WorkMode m => PeriodId -> PeriodId -> m [HBlock]
 getBlocksByHeight from to =
