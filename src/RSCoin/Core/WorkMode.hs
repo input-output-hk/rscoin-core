@@ -1,9 +1,8 @@
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE UndecidableInstances  #-}
-{-# LANGUAGE ViewPatterns          #-}
 {-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE UndecidableInstances  #-}
 
 -- | WorkMode type class.
 
@@ -18,24 +17,25 @@ module RSCoin.Core.WorkMode
        , runEmulationMode
        ) where
 
-import           Control.Monad            (join)
-import           Control.Monad.Catch      (MonadCatch, MonadMask, MonadThrow)
-import           Control.Monad.Reader     (ReaderT, ask, runReaderT)
-import           Control.Monad.Trans      (MonadIO (liftIO))
-import           System.Random            (StdGen, getStdGen)
+import           Control.Monad               (join)
+import           Control.Monad.Base          (MonadBase)
+import           Control.Monad.Catch         (MonadCatch, MonadMask, MonadThrow)
+import           Control.Monad.Reader        (ReaderT, ask, runReaderT)
+import           Control.Monad.Trans         (MonadIO (liftIO))
+import           Control.Monad.Trans.Control (MonadBaseControl (..))
+import           System.Random               (StdGen, getStdGen)
 
-import           Control.TimeWarp.Logging (WithNamedLogger (..), setLoggerName,
-                                           usingLoggerName, LoggerNameBox)
-import           Control.TimeWarp.Rpc     (DelaysSpecifier (..), MonadRpc, MsgPackRpc,
-                                           PureRpc, runMsgPackRpc, runPureRpc)
-import           Control.TimeWarp.Timed   (MonadTimed (..), runTimedIO, ThreadId)
+import           Control.TimeWarp.Logging    (LoggerNameBox, WithNamedLogger (..),
+                                              setLoggerName, usingLoggerName)
+import           Control.TimeWarp.Rpc        (DelaysSpecifier (..), MonadRpc, MsgPackRpc,
+                                              PureRpc, runMsgPackRpc, runPureRpc)
+import           Control.TimeWarp.Timed      (MonadTimed (..), ThreadId)
 
-import           RSCoin.Core.Crypto       (SecretKey)
-import           RSCoin.Core.Logging      (LoggerName, bankLoggerName,
-                                           nakedLoggerName)
-import           RSCoin.Core.NodeConfig   (ContextArgument, NodeContext,
-                                           WithNodeContext (..),
-                                           defaultNodeContext, mkNodeContext)
+import           RSCoin.Core.Crypto          (SecretKey)
+import           RSCoin.Core.Logging         (LoggerName, bankLoggerName, nakedLoggerName)
+import           RSCoin.Core.NodeConfig      (ContextArgument, NodeContext,
+                                              WithNodeContext (..), defaultNodeContext,
+                                              mkNodeContext)
 
 class ( MonadTimed m
       , MonadRpc m
@@ -57,12 +57,20 @@ instance ( MonadTimed m
 
 newtype ContextHolder m a = ContextHolder
     { getContextHolder :: ReaderT NodeContext m a
-    } deriving (Functor, Applicative, Monad, MonadIO, MonadThrow, MonadCatch, MonadMask, MonadTimed, MonadRpc, WithNamedLogger)
+    } deriving (Functor, Applicative, Monad, MonadIO, MonadThrow, MonadCatch, MonadMask, MonadTimed, MonadRpc, WithNamedLogger, MonadBase b)
 
 type instance ThreadId (ContextHolder m) = ThreadId m
 
 instance Monad m => WithNodeContext (ContextHolder m) where
     getNodeContext = ContextHolder ask
+
+instance MonadBaseControl b m =>
+         MonadBaseControl b (ContextHolder m) where
+    type StM (ContextHolder m) a = StM (ReaderT NodeContext m) a
+    liftBaseWith io =
+        ContextHolder $
+        liftBaseWith $ \runInBase -> io $ runInBase . getContextHolder
+    restoreM = ContextHolder . restoreM
 
 type RealMode = ContextHolder (LoggerNameBox MsgPackRpc)
 
