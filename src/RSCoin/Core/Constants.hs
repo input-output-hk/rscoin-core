@@ -69,7 +69,7 @@ genesisEmissionHash = unsafeHash ("Patak" :: String)
 
 -- | This value is sent to genesisAddress in genesis transaction
 genesisValue :: Coin
-genesisValue = 10000000000
+genesisValue = 40000000000
 
 -- | This value is allocated by Bank in the end of a period.
 -- It's then sent distributed accross participating mintettes and Bank.
