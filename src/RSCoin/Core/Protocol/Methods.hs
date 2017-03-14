@@ -28,7 +28,8 @@ module RSCoin.Core.Protocol.Methods
        , callMintetteSafe
        , callNotary
        , callNotarySafe
-       , unCps) where
+       , unCps
+       ) where
 
 import           Control.Lens               (view)
 import           Control.Monad.IO.Class     (MonadIO, liftIO)
@@ -41,8 +42,7 @@ import qualified Control.TimeWarp.Rpc       as Rpc
 
 import           RSCoin.Core.Constants      (rpcTimeout)
 import           RSCoin.Core.MessagePack    ()
-import           RSCoin.Core.NodeConfig     (bankAddr, getNodeContext,
-                                             notaryAddr)
+import           RSCoin.Core.NodeConfig     (bankAddr, getNodeContext, notaryAddr)
 import           RSCoin.Core.Protocol.Types (RSCoinMethod (..))
 import           RSCoin.Core.Types          (Explorer (..), Mintette (..))
 import           RSCoin.Core.WorkMode       (WorkMode)

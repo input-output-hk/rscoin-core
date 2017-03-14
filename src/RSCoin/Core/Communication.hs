@@ -96,6 +96,7 @@ import           Serokell.Util.Text         (listBuilderJSON, listBuilderJSONInd
 
 import           Control.TimeWarp.Timed     (MonadTimed, MonadTimedError (..))
 
+import           RSCoin.Core.Constants      (rpcTimeout)
 import           RSCoin.Core.Crypto         (PublicKey, SecretKey, Signature,
                                              derivePublicKey, hash)
 import           RSCoin.Core.Error          (rscExceptionFromException,
@@ -137,10 +138,11 @@ instance Exception CommunicationError where
 
 instance B.Buildable CommunicationError where
     build (ProtocolError t) = "internal error: " <> B.build t
-    build (TimeoutError t)  = "timeout error: " <> B.build t
     build (MethodError t)   = "method error: " <> B.build t
     build (BadSignature t)  = B.build t <> " has provided a bad signature"
     build (BadRequest t)    = B.build t
+    build (TimeoutError t)  = B.build $
+        "timeout error (current timeout is " <> pack (show rpcTimeout) <> "): " <> t
 
 rpcErrorHandler :: (MonadIO m, WithNamedLogger m) => MP.RpcError -> m a
 rpcErrorHandler = liftIO . log' . fromError
