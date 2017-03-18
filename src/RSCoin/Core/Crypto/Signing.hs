@@ -6,30 +6,38 @@
 
 module RSCoin.Core.Crypto.Signing
        ( Signature
-       , SecretKey
-       , PublicKey
-       , sign
-       , verify
-       , verifyChain
-       , keyGen
-       , deterministicKeyGen
+       , sigToBs
+       , bsToSig
        , constructSignature
        , writeSignature
        , readSignature
-       , constructPublicKey
-       , writePublicKey
-       , readPublicKey
+       , sign
+       , verify
+       , verifyChain
+
+       , deterministicKeyGen
+       , keyGen
+
+       , SecretKey
+       , skToBs
+       , bsToSk
        , constructSecretKey
        , writeSecretKey
        , readSecretKey
        , derivePublicKey
+
+       , PublicKey
+       , pkToBs
+       , bsToPk
+       , constructPublicKey
+       , writePublicKey
+       , readPublicKey
        , checkKeyPair
        , printPublicKey
        ) where
 
 import qualified Crypto.Sign.Ed25519          as E
-import           Data.Aeson                   (FromJSON (parseJSON),
-                                               ToJSON (toJSON))
+import           Data.Aeson                   (FromJSON (parseJSON), ToJSON (toJSON))
 import           Data.Bifunctor               (bimap)
 import           Data.Binary                  (Binary (get, put))
 import qualified Data.ByteString              as BS
@@ -50,14 +58,12 @@ import           GHC.Generics                 (Generic)
 import           System.Directory             (createDirectoryIfMissing)
 import           System.FilePath              (takeDirectory)
 import           Test.QuickCheck              (Arbitrary (arbitrary), vector)
-import           Text.ParserCombinators.ReadP (between, char, munch1,
-                                               skipSpaces, string)
+import           Text.ParserCombinators.ReadP (between, char, munch1, skipSpaces, string)
 import           Text.Read                    (lift, readPrec)
 
 import qualified Serokell.Util.Base64         as B64
 import           Serokell.Util.Exceptions     (throwText)
-import           Serokell.Util.Text           (listBuilderJSON, pairBuilder,
-                                               show')
+import           Serokell.Util.Text           (listBuilderJSON, pairBuilder, show')
 
 import qualified RSCoin.Core.Crypto.Hashing   as H
 
@@ -225,7 +231,7 @@ verify (getPublicKey -> pubKey) (getSignature -> sig) t =
 
 -- | Verify chain of certificates.
 verifyChain :: PublicKey -> [(Signature PublicKey, PublicKey)] -> Bool
-verifyChain _ [] = True
+verifyChain _ []                    = True
 verifyChain pk ((sig, nextPk):rest) = verify pk sig nextPk && verifyChain nextPk rest
 
 -- | Generate arbitrary (secret key, public key) key pair.
