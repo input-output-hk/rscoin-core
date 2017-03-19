@@ -9,9 +9,10 @@ module RSCoin.Core.AesonJS
        , utxoAsBalances
        ) where
 
-import           Data.Aeson             (FromJSON (..), ToJSON, object, toJSON, (.=))
+import           Data.Aeson             (FromJSON (..), ToJSON, object, toJSON, (.:),
+                                         (.=))
 import           Data.Aeson.TH          (deriveJSON)
-import           Data.Aeson.Types       (Value (Number), typeMismatch)
+import           Data.Aeson.Types       (Value (Number, Object), typeMismatch)
 import qualified Data.HashMap.Strict    as HM
 import           Data.Scientific        (toRealFloat)
 
@@ -56,3 +57,18 @@ instance ToJSON UtxoAsBalances where
       where
         convert (addr, coin) =
             object ["address" .= getAddress addr, "coin" .= coin]
+
+data UtxoParsingHelper = UtxoParsingHelper
+    { uphAddress :: !Address
+    , uphCoin    :: !Coin
+    }
+
+instance FromJSON UtxoParsingHelper where
+    parseJSON (Object obj) =
+        UtxoParsingHelper <$> (Address <$> obj .: "address") <*> obj .: "coin"
+    parseJSON v = typeMismatch "UtxoParsingHelper" v
+
+instance FromJSON UtxoAsBalances where
+    parseJSON v = UtxoAsBalances . map convert <$> parseJSON v
+      where
+        convert UtxoParsingHelper {..} = (uphAddress, uphCoin)
