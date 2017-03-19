@@ -6,6 +6,7 @@
 
 module RSCoin.Core.AesonJS
        ( UtxoAsBalances (..)
+       , utxoAsBalances
        ) where
 
 import           Data.Aeson             (FromJSON (..), ToJSON, object, toJSON, (.=))
@@ -42,11 +43,16 @@ $(deriveJSON defaultOptionsPS ''TxStrategy)
 $(deriveJSON defaultOptionsPS ''WithMetadata)
 
 newtype UtxoAsBalances = UtxoAsBalances
-    { getUtxoAsBalances :: Utxo
+    { getUtxoAsBalances :: [(Address, Coin)]
     }
 
+utxoAsBalances :: Utxo -> UtxoAsBalances
+utxoAsBalances = UtxoAsBalances . map toAddrCoin . HM.toList
+  where
+    toAddrCoin ((_, _, coin), addr) = (addr, coin)
+
 instance ToJSON UtxoAsBalances where
-    toJSON = toJSON . map toAddrCoin . HM.toList . getUtxoAsBalances
+    toJSON = toJSON . map convert . getUtxoAsBalances
       where
-        toAddrCoin ((_, _, coin), addr) =
+        convert (addr, coin) =
             object ["address" .= getAddress addr, "coin" .= coin]
