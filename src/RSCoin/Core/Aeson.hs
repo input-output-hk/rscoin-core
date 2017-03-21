@@ -62,7 +62,8 @@ data UtxoParsingHelper = UtxoParsingHelper
 
 instance FromJSON UtxoParsingHelper where
     parseJSON (Object obj) =
-        UtxoParsingHelper <$> (Address <$> obj .: "address") <*> obj .: "coin"
+        UtxoParsingHelper <$> (Address <$> obj .: "address") <*>
+        ((realToFrac :: Double -> CoinAmount) <$> obj .: "coin")
     parseJSON v = typeMismatch "UtxoParsingHelper" v
 
 instance FromJSON UtxoBalances where
