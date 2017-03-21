@@ -5,8 +5,8 @@
 -- Instances that communicate with Javascript. They mostly have numbers converted to string
 
 module RSCoin.Core.AesonJS
-       ( UtxoAsBalances (..)
-       , utxoAsBalances
+       ( UtxoBalancesJS (..)
+       , utxoBalancesJS
        ) where
 
 import           Data.Aeson             (FromJSON (..), ToJSON, object, toJSON, (.:),
@@ -43,17 +43,17 @@ $(deriveJSON defaultOptionsPS ''Transaction)
 $(deriveJSON defaultOptionsPS ''TxStrategy)
 $(deriveJSON defaultOptionsPS ''WithMetadata)
 
-newtype UtxoAsBalances = UtxoAsBalances
-    { getUtxoAsBalances :: [(Address, Coin)]
+newtype UtxoBalancesJS = UtxoBalancesJS
+    { getUtxoBalancesJS :: [(Address, Coin)]
     }
 
-utxoAsBalances :: Utxo -> UtxoAsBalances
-utxoAsBalances = UtxoAsBalances . map toAddrCoin . HM.toList
+utxoBalancesJS :: Utxo -> UtxoBalancesJS
+utxoBalancesJS = UtxoBalancesJS . map toAddrCoin . HM.toList
   where
     toAddrCoin ((_, _, coin), addr) = (addr, coin)
 
-instance ToJSON UtxoAsBalances where
-    toJSON = toJSON . map convert . getUtxoAsBalances
+instance ToJSON UtxoBalancesJS where
+    toJSON = toJSON . map convert . getUtxoBalancesJS
       where
         convert (addr, coin) =
             object ["address" .= getAddress addr, "coin" .= coin]
@@ -68,7 +68,7 @@ instance FromJSON UtxoParsingHelper where
         UtxoParsingHelper <$> (Address <$> obj .: "address") <*> obj .: "coin"
     parseJSON v = typeMismatch "UtxoParsingHelper" v
 
-instance FromJSON UtxoAsBalances where
-    parseJSON v = UtxoAsBalances . map convert <$> parseJSON v
+instance FromJSON UtxoBalancesJS where
+    parseJSON v = UtxoBalancesJS . map convert <$> parseJSON v
       where
         convert UtxoParsingHelper {..} = (uphAddress, uphCoin)
